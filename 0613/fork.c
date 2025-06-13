@@ -16,8 +16,12 @@ int main(int arg, char **argv)
     else if(pid == 0){
         g_var++;
         var++;
-        printf("Parent %s from parent Process(%d) : %d \n",str, getpid(),pid);
+        printf("Parent %s from Chiled Process(%d) : %d \n",str, getpid(),getppid());
         sleep(1);
+    }
+    else{
+         printf("Parent %s from Chiled Process(%d) : %d \n",str, getpid(),pid);
+         sleep(1);
     }
     printf("pid = %d, Global var = %d, var = %d \n",getpid(),g_var,var);
     return 0;
