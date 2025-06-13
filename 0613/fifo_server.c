@@ -19,8 +19,10 @@ int main(int argc, char **argv)
         perror("open()");
         return -1;
     }
-    while((n=read(fd,buf,sizeof(buf)))>0)
-        printf("%s",buf);
+    // while((n=read(fd,buf,sizeof(buf)))>0)
+    //     printf("%s",buf);
+    while ((n = read(fd, buf, sizeof(buf))) > 0)
+        write(1, buf, n); 
     
     close(fd);
     return 0;
