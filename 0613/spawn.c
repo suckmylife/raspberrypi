@@ -10,7 +10,7 @@ int system(char *cmd)
     int status;
     char *argv[] = {"sh","-c",cmd,NULL};
 
-    posix_spawn(pid,"/bin/sh",NULL,NULL,argv,environ);
+    posix_spawn(&pid,"/bin/sh",NULL,NULL,argv,environ);
 
     waitpid(pid,&status,0);
     return status;
