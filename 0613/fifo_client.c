@@ -9,7 +9,7 @@ int main(int argc, char **argv)
     int n,fd;
     char buf[BUFSIZ];
 
-    if((fd = open(FIFOFILE,O_RDONLY))<0){
+    if((fd = open(FIFOFILE,O_WRONLY))<0){
         perror("open()");
         return -1;
     }
