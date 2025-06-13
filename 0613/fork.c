@@ -17,7 +17,6 @@ int main(int arg, char **argv)
         g_var++;
         var++;
         printf("Child %s from Parent Process(%d) : %d \n",str, getpid(),getppid());
-        sleep(1);
     }
     else{
          printf("Parent %s from Child Process(%d) : %d \n",str, getpid(),pid);
