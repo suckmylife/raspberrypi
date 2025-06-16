@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <linux/input.h>
 
-#define JOY_DEV "/dev/input/event1"
+#define JOY_DEV "/dev/input/event2"
 
 int main()
 {
