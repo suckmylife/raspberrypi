@@ -21,11 +21,11 @@ int main()
         if(ie.type){
             switch (ie.code)
             {
-            case KEY_UP: printf("Up\n") break;
-            case KEY_DOWN: printf("Down\n") break;
-            case KEY_LEFT: printf("Left\n") break;
-            case KEY_RIGHT: printf("Right\n") break;
-            case KEY_ENTER: printf("Enter\n") break;
+            case KEY_UP: printf("Up\n"); break;
+            case KEY_DOWN: printf("Down\n"); break;
+            case KEY_LEFT: printf("Left\n"); break;
+            case KEY_RIGHT: printf("Right\n"); break;
+            case KEY_ENTER: printf("Enter\n"); break;
             default:printf("Default\n"); break;
             }
         }
