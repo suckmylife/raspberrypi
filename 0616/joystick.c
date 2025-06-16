@@ -15,11 +15,7 @@ int main()
         perror("opening device");
         exit(EXIT_FAILURE);
     }
-    printf("here?\n");
-    fflush(stdout);
     while(read(fd,&ie,sizeof(struct input_event))){
-        printf("while here?\n");
-        fflush(stdout);
         printf("time %ld.%06ld\ttype %d\tcode %-3d\tvalue %d\n",
                 ie.time.tv_sec,ie.time.tv_usec, ie.type, ie.code,ie.value);
         if(ie.type){
