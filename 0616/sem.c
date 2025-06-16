@@ -8,7 +8,7 @@ static int semid;
 void p(){
     struct sembuf pbuf;
     pbuf.sem_num = 0;
-    pbuf.sem_op = 0;
+    pbuf.sem_op = -1;
     pbuf.sem_flg = SEM_UNDO;
     if(semop(semid, &pbuf,1)==-1){
         perror("p : semop()");
