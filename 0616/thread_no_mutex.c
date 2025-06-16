@@ -12,6 +12,8 @@ int main(int argc, char **argv)
     pthread_t ptInc, ptDec;
     pthread_create(&ptInc, NULL, inc_function,NULL);
     pthread_create(&ptDec, NULL, dec_function,NULL);
+    pthread_join(ptInc,NULL);
+    pthread_join(ptDec,NULL);
 }
 
 void *inc_function(void *arg)
