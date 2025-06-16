@@ -22,24 +22,24 @@ int main(int argc, char **argv)
 
 void *inc_function(void *arg)
 {
-    pthread_mutex_lock(&mid)
+    pthread_mutex_lock(&mid);
     printf("INC : %d < before\n",g_var);
     fflush(stdout);
     g_var++;
     printf("INC : %d > After \n",g_var);
     fflush(stdout);
-    pthread_mutex_unlock(&mid)
+    pthread_mutex_unlock(&mid);
     return NULL;
 }
 
 void *dec_function(void *arg)
 {
-    pthread_mutex_lock(&mid)
+    pthread_mutex_lock(&mid);
     printf("DEC : %d < before\n",g_var);
     fflush(stdout);
     g_var--;
     printf("DEC : %d > After \n",g_var);
     fflush(stdout);
-    pthread_mutex_unlock(&mid)
+    pthread_mutex_unlock(&mid);
     return NULL;
 }
