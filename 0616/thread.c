@@ -25,7 +25,8 @@ void *pthreadV(void *arg)
         v();
         cnt++;
         printf("increase : %d\n",cnt);
-        fflush(NULL);
+        //fflush(NULL);
+        fflush(stdout);
     }
     return NULL;
 }
@@ -37,7 +38,8 @@ void *pthreadP(void *arg)
         p();
         cnt--;
         printf("decrease : %d\n",cnt);
-        fflush(NULL);
+        //fflush(NULL);
+        fflush(stdout);
         usleep(100);
     }
     return NULL;
