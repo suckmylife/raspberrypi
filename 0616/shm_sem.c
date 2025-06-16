@@ -39,6 +39,11 @@ int main(int argc, char **argv)
     int *cVal;
     void *shmmem = (void *)0;
     int status, sem_val;
+    union semun { /* semun 공용체 */
+        int val;
+        struct semid_ds *buf;
+        unsigned short int *arrary;
+    } arg;
 
     /* 세마포어에 대한 채널 얻기 */
     if((semid = semget(SEM_KEY, 1, IPC_CREAT | 0666)) == -1) {
