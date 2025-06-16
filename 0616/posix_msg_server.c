@@ -12,7 +12,7 @@ int main(int argc, char **argv)
     
     attr.mq_flags = 0;
     attr.mq_maxmsg = 10;
-    attr.mq_masgsize = BUFSIZ;
+    attr.mq_msgsize = BUFSIZ;
     attr.mq_curmsgs = 0;
 
     mq = mq_open(name, O_CREAT | O_RDONLY, 0644,&attr);
