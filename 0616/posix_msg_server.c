@@ -10,7 +10,7 @@ int main(int argc, char **argv)
     char buf[BUFSIZ];
     int n;
     
-    attr.mq_flasg = 0;
+    attr.mq_flags = 0;
     attr.mq_maxmsg = 10;
     attr.mq_masgsize = BUFSIZ;
     attr.mq_curmsgs = 0;
