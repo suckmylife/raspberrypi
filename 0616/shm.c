@@ -28,6 +28,7 @@ int main(int argc, char **argv)
         for(i = 0; i< 3; i++){
             *cVal += 1;
             printf("Child(%d) : %d \n",i, *cVal);
+            fflush(stdout);
             sleep(1);
         }
     }
@@ -48,6 +49,7 @@ int main(int argc, char **argv)
         for(i = 0; i< 3; i++){
             sleep(1);
             printf("Parent(%d) : %d \n",i, *cVal);
+            fflush(stdout);
         }
     }
     shmctl(shmid, IPC_RMID,0);
