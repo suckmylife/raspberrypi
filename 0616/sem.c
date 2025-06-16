@@ -3,7 +3,7 @@
 #include <sys/sem.h>
 
 int cnt = 0;
-static int = semid;
+static int semid;
 
 void p(){
     struct sembuf pbuf;
