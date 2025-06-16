@@ -9,6 +9,7 @@
 int main()
 {
     int fd;
+    struct input_event ie;
 
     if((fd = open(JOY_DEV,O_RDONLY))==-1){
         perror("opening device");
