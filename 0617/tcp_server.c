@@ -28,6 +28,11 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    if(listen(ssock,8)<0){
+        perror("listen()");
+        return -1;
+    }
+
     clen = sizeof(cliaddr);
     do{
         int n, csock = accept(ssock,(struct sockaddr *)&cliaddr,&clen);
