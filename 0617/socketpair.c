@@ -11,7 +11,7 @@ int main(int argc, char **argv)
     char buf[] = "Hello world", line[BUFSIZ];
     pid_t pid;
 
-    re = socketpair(AF_LOCAL,SOCK_STREAM,0,sock_fd);
+    ret = socketpair(AF_LOCAL,SOCK_STREAM,0,sock_fd);
     if(ret == -1){
         perror("socketpair()");
         return -1;
