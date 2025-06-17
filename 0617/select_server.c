@@ -15,7 +15,7 @@ int main(int argc, char **argv)
 
     fd_set readfd;
     int maxfd, client_index,start_index;
-    int cliend_fd[5]={0};
+    int client_fd[5]={0};
 
     if((ssock = socket(AF_INET,SOCK_STREAM, 0))<0){
         perror("socket()");
@@ -45,9 +45,9 @@ int main(int argc, char **argv)
         FD_SET(ssock,&readfd);
 
         for(start_index = 0; start_index<client_index; start_index++){
-            FD_SET(cliend_fd[start_index],&readfd);
+            FD_SET(client_fd[start_index],&readfd);
             if(client_fd[start_index]>maxfd)
-                maxfd = cliend_fd[start_index];
+                maxfd = client_fd[start_index];
         }
         maxfd = maxfd + 1;
 
@@ -71,14 +71,14 @@ int main(int argc, char **argv)
             if(client_index == 5) break;
         }
         for(start_index = 0; start_index < client_index; start_index++){
-            if(FD_ISSET(cliend_fd[start_index],&readfd)){
+            if(FD_ISSET(client_fd[start_index],&readfd)){
                 memset(mesg,0,sizeof(mesg));
                 if((n = read(client_fd[start_index],mesg,sizeof(mesg)))>0){
                     printf("Received Data : %s \n",mesg);
-                    write(cliend_fd[start_index],mesg,n);
-                    close(cliend_fd[start_index]);
+                    write(client_fd[start_index],mesg,n);
+                    close(client_fd[start_index]);
 
-                    FD_CLR(cliend_fd[start_index],&readfd);
+                    FD_CLR(client_fd[start_index],&readfd);
                     client_index--;
                 }
             }
