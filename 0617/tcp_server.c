@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 
         if(write(csock,mesg,n) <= 0)
             perror("write()");
-        clsoe(csock);
+        close(csock);
     }while(strncmp(mesg,"q",1));
     close(ssock);
     return 0;
