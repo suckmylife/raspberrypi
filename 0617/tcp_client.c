@@ -39,12 +39,14 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    shutdown(ssock,SHUT_WR);
+
     memset(mesg,0,BUFSIZ);
     if(recv(ssock,mesg,BUFSIZ,0)<=0){
         perror("recv");
         return -1;
     }
-
+    shutdown(ssock,SHUT_RD);
     printf("Received data : %s\n",mesg);
 
     close(ssock);
