@@ -74,7 +74,7 @@ void *clnt_connection(void *arg)
     fputs(reg_line,stdout);
 
     ret=strtok(reg_line,"/ ");
-    strcpy(filename,(ret != NULL)?ret:"");
+    strcpy(method,(ret != NULL)?ret:"");
     if(strcmp(method,"POST") == 0){
         sendOk(clnt_write);
         goto END;
