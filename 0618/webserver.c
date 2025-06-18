@@ -86,9 +86,9 @@ void *clnt_connection(void *arg)
 
     ret =strtok(NULL," ");
     strcpy(filename,(ret != NULL)?ret:"");
-    if(filename[0] == "/"){
+    if(filename[0] == '/'){
         for(int i = 0, j=0; i<BUFSIZ; i++,j++){
-            if(filename[0] == "/")j++;
+            if(filename[0] == '/')j++;
             filename[i] = filename[j];
             if(filename[j] == '\0') break;
         }
@@ -98,7 +98,7 @@ void *clnt_connection(void *arg)
         fgets(reg_line,BUFSIZ, clnt_read);
         fputs(reg_line, stdout);
         strcpy(reg_buf,reg_line);
-        char *str = strchr(reg_buf, ":");
+        char *str = strchr(reg_buf, ':');
     }while(strncmp(reg_line, "\r\n", 2));
 
     sendData(clnt_write,type,filename);
