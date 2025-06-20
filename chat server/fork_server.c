@@ -89,7 +89,7 @@ int main(int argc, char **argv)
         }
 
         if((pipe_info[client_num].pid = fork())<0){
-           syslog(LOG_ERR,"NO FORK!!");
+            syslog(LOG_ERR,"NO FORK!!");
             exit(1);
         }
         else if(pipe_info[client_num].pid == 0){ //자식
