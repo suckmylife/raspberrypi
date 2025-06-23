@@ -9,19 +9,7 @@
 #include <sys/wait.h>
 
 #include "deamon.h"
-
-#define TCP_PORT   5100
-#define MAX_CLIENT 32
-
-// 각 자식 프로세스(클라이언트 핸들러)의 정보를 담는 구조체
-typedef struct {
-    // 자식 프로세스의 PID
-    pid_t pid;             
-    // 부모가 이 자식에게 메시지를 보낼 때 사용하는 파이프의 '쓰기' 끝 FD (부모 관점)
-    int parent_to_child_write_fd;
-    // 이 자식이 부모에게 메시지를 보낼 때, 부모가 '읽을' 파이프의 FD (부모 관점)
-    int child_to_parent_read_fd;
-} pipeInfo;
+#include "common.h"
 
 int main(int argc, char **argv)
 {
@@ -57,7 +45,7 @@ int main(int argc, char **argv)
     //"버퍼"의 크기를 accept() 함수에 알려주는 역할
     clen = sizeof(cliaddr); 
     //클라이언트 여러개를 받기 위한 선언 
-    struct pipeInfo pipe_info[MAX_CLIENT]; //클라이언트 정보 참조
+    
     int client_num = 0; //활성화된 클라이언트
     do{
         //클라이언트 연결 감지중 
