@@ -10,17 +10,17 @@
 
 #include "deamon.h"
 #include "common.h"
+#include "signals.h"
 
 int main(int argc, char **argv)
 {
     int ssock;  //서버소켓 (클라이언트 소켓이 연결되었을때만 사용)
     int csock; //클라이언트 소켓 
-    socklen_t clen; //주소 구조체  길이를 저장할 변수 
+    socklen_t cli_len; //주소 구조체  길이를 저장할 변수 
     struct sockaddr_in servaddr, cliaddr;//클라이언트의 주소정보를 담을 빈그릇
-    struct sigaction sa; //SIGIO를 쓰기 위한 안정된 비동기 핸들러
     
     daemonize(argv); //데몬화
-    sa.sa_handler = SIGIO; //SIGIO 핸들러에 등록
+    
     //서버소켓 생성
     if((ssock = socket(AF_INET,SOCK_STREAM, 0))<0){
         syslog(LOG_ERR,"socket not create");
@@ -41,15 +41,21 @@ int main(int argc, char **argv)
         syslog(LOG_ERR,"Cannot listen");
         exit(1);
     }
+
     //clen이 클라이언트 주소 정보를 받을 cliaddr라는 
     //"버퍼"의 크기를 accept() 함수에 알려주는 역할
-    clen = sizeof(cliaddr); 
+    cli_len = sizeof(cliaddr); 
     //클라이언트 여러개를 받기 위한 선언 
     
-    int client_num = 0; //활성화된 클라이언트
+    client_num = 0; //활성화된 클라이언트
     do{
+        //자식이 죽었음을 알리는 플래그
+        if(child_exited_flag){
+            clean_active_process();
+            child_exited_flag = 0;
+        }
         //클라이언트 연결 감지중 
-        int n, csock = accept(ssock,(struct sockaddr *)&cliaddr,&clen);
+        int n, csock = accept(ssock,(struct sockaddr *)&cliaddr,&cli_len);
         //파이프 관련 초기화 
         pid_t new_pid; //부모 자식 구분자
         int parent_pfd[2]; //부모->자식 fd
@@ -70,12 +76,13 @@ int main(int argc, char **argv)
             syslog(LOG_ERR,"No PARENT PIPE!");
             exit(1);
         }
-
+        //클라이언트 서버 프로세스 생성 
         if((new_pid = fork())<0){
             syslog(LOG_ERR,"NO FORK!!");
             exit(1);
         }
         else if(new_pid == 0){ //자식 : 클라이언트에서 쓴걸 읽고 부모에게 보낸다
+            pid
             char mesg[BUFSIZ]; //메시지 읽는거
             close(ssock); //자식은 클라이언트를 감지 하지 않아도 되니까 닫음
 
@@ -96,6 +103,7 @@ int main(int argc, char **argv)
                     syslog(LOG_INFO,"Received data : %s",mesg);
                     if(write(child_pfd[1],mesg,n) <= 0) //클라이언트에게 받은걸 부모에게 쓴다.
                         syslog(LOG_ERR,"cannot Write to parent");
+                    kill();
                 }
                 //부모의 메시지를 읽는다
                 if((n=read(parent_pfd[0],mesg,BUFSIZ)) <= 0){
@@ -129,6 +137,10 @@ int main(int argc, char **argv)
             //자식이 부모에게 온걸 읽을 수 있는 파이프의 단 할당
             pipe_info[client_num].child_to_parent_read_fd  = child_pfd[0];
             client_num++;
+            if(client_num >= MAX_CLIENT){
+                syslog(LOG_ERR,"Index out of client number");
+                exit(1);
+            }
 
             for(int i = 0; i<client_num; i++)
             {
@@ -154,7 +166,7 @@ int main(int argc, char **argv)
             close(child_pfd[0]); 
         }
         
-    }while(strncmp(mesg,"q",1));
+    }while(!is_shutdown);
 
     close(ssock);
 
