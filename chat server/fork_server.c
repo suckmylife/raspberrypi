@@ -200,7 +200,7 @@ int main(int argc, char **argv)
     }while(!is_shutdown);
 
     close(ssock);
-    close(csock)
+    close(csock);
     return 0;
 }
 
