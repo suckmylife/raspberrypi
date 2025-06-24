@@ -3,7 +3,6 @@
 
 #include <stdbool.h>
 #include <unistd.h>
-#include <vector>
 
 #define TCP_PORT   5100
 #define MAX_CLIENT 32

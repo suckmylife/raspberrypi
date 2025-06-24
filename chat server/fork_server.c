@@ -22,7 +22,7 @@ int main(int argc, char **argv)
     int csock; //클라이언트 소켓 
     socklen_t cli_len; //주소 구조체  길이를 저장할 변수 
     struct sockaddr_in servaddr, cliaddr;//클라이언트의 주소정보를 담을 빈그릇
-    daemonize(argv); //데몬화
+    daemonize(argc, argv); //데몬화
     
     //서버소켓 생성
     if((ssock = socket(AF_INET,SOCK_STREAM, 0))<0){
