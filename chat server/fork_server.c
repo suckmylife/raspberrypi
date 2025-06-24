@@ -93,14 +93,14 @@ int main(int argc, char **argv)
             exit(1);
         }
         else if(pids_ == 0){ //자식 : 클라이언트에서 쓴걸 읽고 부모에게 보낸다
-            close(ssock); //자식은 클라이언트를 감지 하지 않아도 되니까 닫음
+            //close(ssock); //자식은 클라이언트를 감지 하지 않아도 되니까 닫음
             pid_t main_pid, client_pid;
             main_pid = getppid();
             client_pid = getpid();
             client_work(client_pid,main_pid,csock,parent_pfd,child_pfd);
         }
         else if(pids_>0){ //부모 : 자식이 보낸걸 읽고 
-            close(csock); // 부모는 클라이언트 소켓을 쓰지 않으니까
+            //close(csock); // 부모는 클라이언트 소켓을 쓰지 않으니까
             //부모는 parent_pfd[1]에 쓰고, 자식은 parent_pfd[0]에서 읽음
             //부모는 써야 하니까 반대를 닫는다
             close(parent_pfd[0]); 
@@ -191,7 +191,7 @@ int main(int argc, char **argv)
             
             client_num++;
             
-            close(ssock);
+            //close(ssock);
             //열어놓은 파이프 닫기
             close(parent_pfd[1]);
             close(child_pfd[0]); 
@@ -200,7 +200,7 @@ int main(int argc, char **argv)
     }while(!is_shutdown);
 
     close(ssock);
-
+    close(csock)
     return 0;
 }
 
