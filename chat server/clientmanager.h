@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include "common.h"
 #include "signals.h"
