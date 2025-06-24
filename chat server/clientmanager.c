@@ -22,12 +22,13 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
         else if(n > 0){
             char add_mesg[BUFSIZ];
             mesg[n] = '\0';
-            syslog(LOG_INFO,"Received data : %s",mesg);
+            syslog(LOG_INFO,"Received Client data : %s",mesg);
             snprintf(add_mesg, BUFSIZ, "%d:%s", client_server_pid, mesg);
             if(write(client_to_main_pipe_fds[1],add_mesg,strlen(add_mesg)+1) <= 0) //클라이언트에게 받은걸 부모에게 쓴다.
                 syslog(LOG_ERR,"cannot Write to parent");
             else{
                 kill(main_server_pid,SIGUSR2);
+                syslog(LOG_INFO,"Write data to Main : %s",mesg);
             }
         } else if (n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             // 데이터가 아직 없음 (논블로킹 모드)
@@ -44,7 +45,7 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
         }
         else if(client_n > 0){
             mesg[client_n] = '\0';
-            syslog(LOG_INFO,"Received data : %s",mesg);
+            syslog(LOG_INFO,"Received Chatroom data : %s",mesg);
             // if(write(csock,mesg,n) <= 0) //부모의 메시지를
             //     syslog(LOG_ERR,"cannot Write to client");
             
