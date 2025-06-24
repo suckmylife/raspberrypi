@@ -120,12 +120,14 @@ int main(int argc, char **argv)
         }
         else if(pids_>0){ //부모 : 자식이 보낸걸 읽고 
             //close(csock); // 부모는 클라이언트 소켓을 쓰지 않으니까
-            //부모는 parent_pfd[1]에 쓰고, 자식은 parent_pfd[0]에서 읽음
-            //부모는 써야 하니까 반대를 닫는다
-            close(parent_pfd[0]); 
-            //자식은 child_pfd[1]에 쓰고, 부모는 child_pfd[0]에서 읽음
-            //부모는 읽어야 하니까 반대를 닫는다
-            close(child_pfd[1]);
+            // //부모는 parent_pfd[1]에 쓰고, 자식은 parent_pfd[0]에서 읽음
+            // //부모는 써야 하니까 반대를 닫는다
+            // close(parent_pfd[0]); 
+            // //자식은 child_pfd[1]에 쓰고, 부모는 child_pfd[0]에서 읽음
+            // //부모는 읽어야 하니까 반대를 닫는다
+            // close(child_pfd[1]);
+            
+            memset(&client_pipe_info[client_num], 0, sizeof(client_pipe_info[client_num]));
             client_pipe_info[client_num].pid = pids_;
             //부모가 자식에게 쓰고 있는 파이프의 단 할당
             client_pipe_info[client_num].parent_to_child_write_fd  = parent_pfd[1];
@@ -137,89 +139,90 @@ int main(int argc, char **argv)
                 syslog(LOG_ERR,"Index out of client number");
                 exit(1);
             }
-            //클라이언트의 메시지를 읽는다
-            //if(is_write_from_client)
-            {
-                //is_write_from_client = 0;
-                int n;
-                char mesg[BUFSIZ];
-                
-                if((n=read(child_pfd[0],mesg,BUFSIZ)) <= 0){
-                    syslog(LOG_ERR,"cannot read child message");
-                }
-                else{
-                    mesg[n] = '\0';
-                    char *pid_str;
-                    char *content;
+            
+            client_num++;
+            //close(ssock);
+            //열어놓은 파이프 닫기
+            //close(parent_pfd[1]);
+            //close(child_pfd[0]); 
+        }
+        //클라이언트의 메시지를 읽는다
+        if(is_write_from_client)
+        {
+            is_write_from_client = 0;
+            int n;
+            char mesg[BUFSIZ];
+            
+            if((n=read(child_pfd[0],mesg,BUFSIZ)) <= 0){
+                syslog(LOG_ERR,"cannot read child message");
+            }
+            else{
+                mesg[n] = '\0';
+                char *pid_str;
+                char *content;
 
-                    // 첫 번째 호출: 원본 문자열과 구분자를 넘김
-                    pid_str = strtok(mesg, ":");  // PID 부분 추출
-                    pid_t from_who = atoi(pid_str);
-                    // 두 번째 호출: NULL과 구분자를 넘김 (내부적으로 이전 위치 기억)
-                    content = strtok(NULL, ":");  // 메시지 내용 부분 추출
-                    //명령어
-                    syslog(LOG_INFO,"Receive : %s",mesg);
-                    syslog(LOG_INFO,"CONTENT : %s",content);
-                    syslog(LOG_INFO,"CONTENT : %s",pid_str);
-                    if(content[0] == '/'){
-                        int isAdd = check_command(content, "add");
-                        int isJoin = check_command(content, "join");
-                        int isRm = check_command(content, "rm");
-                        int isList = check_command(content, "list");
-                        //int isJoin = check_command(content, "join");
-                        memset(&client_pipe_info[client_num], 0, sizeof(client_pipe_info[client_num]));
-                        if(isAdd){
-                            strncpy(room_info[room_num].name, content + 2 + strlen("add"), NAME - 1);
-                            room_info[room_num].name[NAME - 1] = '\0';  // 안전한 널 종료
-                            room_num++;
-                        }
-                        else if(isJoin){
-                            
-                            strncpy(client_pipe_info[client_num].room_name, content + 2 + strlen("join"), NAME - 1);
-                            client_pipe_info[client_num].room_name[NAME - 1] = '\0';  // 안전한 널 종료
+                // 첫 번째 호출: 원본 문자열과 구분자를 넘김
+                pid_str = strtok(mesg, ":");  // PID 부분 추출
+                pid_t from_who = atoi(pid_str);
+                // 두 번째 호출: NULL과 구분자를 넘김 (내부적으로 이전 위치 기억)
+                content = strtok(NULL, ":");  // 메시지 내용 부분 추출
+                //명령어
+                syslog(LOG_INFO,"Receive : %s",mesg);
+                syslog(LOG_INFO,"CONTENT : %s",content);
+                syslog(LOG_INFO,"CONTENT : %s",pid_str);
+                if(content[0] == '/'){
+                    int isAdd = check_command(content, "add");
+                    int isJoin = check_command(content, "join");
+                    int isRm = check_command(content, "rm");
+                    int isList = check_command(content, "list");
+                    //int isJoin = check_command(content, "join");
+                    
+                    if(isAdd){
+                        strncpy(room_info[room_num].name, content + 2 + strlen("add"), NAME - 1);
+                        room_info[room_num].name[NAME - 1] = '\0';  // 안전한 널 종료
+                        room_num++;
+                    }
+                    else if(isJoin){
+                        
+                        strncpy(client_pipe_info[client_num-1].room_name, content + 2 + strlen("join"), NAME - 1);
+                        client_pipe_info[client_num-1].room_name[NAME - 1] = '\0';  // 안전한 널 종료
+                    }
+                }
+                else if(client_pipe_info[client_num-1].name[0] == '\0'){ // 클라이언트 이름
+                    strncpy(client_pipe_info[client_num-1].name, content, NAME - 1);
+                    client_pipe_info[client_num-1].name[NAME - 1] = '\0';
+                }
+                else{ // 클라이언트 채팅 뿌리기
+                    //누가 보냈는지 확인하기
+                    int that_room = -1;
+                    char *r_name = NULL;
+                    for(int i = 0; i < client_num-1; i++){
+                        if(client_pipe_info[i].pid == from_who){
+                            that_room = i;
+                            r_name = client_pipe_info[i].room_name;
+                            break;
                         }
                     }
-                    else if(client_pipe_info[client_num].name[0] == '\0'){ // 클라이언트 이름
-                        strncpy(client_pipe_info[client_num].name, content, NAME - 1);
-                        client_pipe_info[client_num].name[NAME - 1] = '\0';
-                    }
-                    else{ // 클라이언트 채팅 뿌리기
-                        //누가 보냈는지 확인하기
-                        int that_room = -1;
-                        char *r_name = NULL;
-                        for(int i = 0; i < client_num; i++){
-                            if(client_pipe_info[i].pid == from_who){
-                                that_room = i;
-                                r_name = client_pipe_info[i].room_name;
-                                break;
-                            }
-                        }
-                        if(that_room != -1){
-                            for(int i = 0; i < client_num; i++){
-                                if((strcmp(client_pipe_info[i].room_name, r_name) == 0)&& client_pipe_info[i].isActive){
-                                    if(write(client_pipe_info[i].parent_to_child_write_fd,content,strlen(content)+1) <= 0)
-                                            syslog(LOG_ERR,"cannot Write to parent");
-                                    else{
-                                        kill(client_pipe_info[i].pid,SIGUSR1);
-                                    }
+                    if(that_room != -1){
+                        for(int i = 0; i < client_num-1; i++){
+                            if((strcmp(client_pipe_info[i].room_name, r_name) == 0)&& client_pipe_info[i].isActive){
+                                if(write(client_pipe_info[i].parent_to_child_write_fd,content,strlen(content)+1) <= 0)
+                                        syslog(LOG_ERR,"cannot Write to parent");
+                                else{
+                                    kill(client_pipe_info[i].pid,SIGUSR1);
                                 }
                             }
                         }
-                        else{
-                            syslog(LOG_ERR,"NO THAT ROOM!!!");
-                        }
-
                     }
-                    client_num++;
+                    else{
+                        syslog(LOG_ERR,"NO THAT ROOM!!!");
+                    }
+
                 }
+                
             }
-            
-            //close(ssock);
-            //열어놓은 파이프 닫기
-            close(parent_pfd[1]);
-            close(child_pfd[0]); 
         }
-        
+            
     }while(!is_shutdown);
 
     close(ssock);
