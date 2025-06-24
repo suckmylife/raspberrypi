@@ -1,6 +1,6 @@
 #include "deamon.h"
 
-void daemonize(int argc, char *argv[])
+int daemonize(int argc, char *argv[])
 {
     struct sigaction sa;
     struct rlimit rl;
@@ -60,5 +60,5 @@ void daemonize(int argc, char *argv[])
 
     while(1){}
     closelog();
-    return 0;
+    return;
 }
