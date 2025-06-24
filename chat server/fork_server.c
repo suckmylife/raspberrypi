@@ -126,6 +126,7 @@ int main(int argc, char **argv)
             //자식이 부모에게 온걸 읽을 수 있는 파이프의 단 할당
             client_pipe_info[client_num].child_to_parent_read_fd  = child_pfd[0];
             client_pipe_info[client_num].isActive = true;
+            
             if(client_num >= MAX_CLIENT){
                 syslog(LOG_ERR,"Index out of client number");
                 exit(1);
@@ -153,7 +154,7 @@ int main(int argc, char **argv)
                     //명령어
                     syslog(LOG_INFO,"Receive : %s",mesg);
                     syslog(LOG_INFO,"CONTENT : %s",content);
-                    syslog(LOG_INFO,"CONTENT : %d",pid_str);
+                    syslog(LOG_INFO,"CONTENT : %s",pid_str);
                     if(content[0] == '/'){
                         int isAdd = check_command(content, "add");
                         int isJoin = check_command(content, "join");
@@ -178,8 +179,8 @@ int main(int argc, char **argv)
                     }
                     else{ // 클라이언트 채팅 뿌리기
                         //누가 보냈는지 확인하기
-                        int that_room;
-                        char *r_name;
+                        int that_room = -1;
+                        char *r_name = NULL;
                         for(int i = 0; i < client_num; i++){
                             if(client_pipe_info[i].pid == from_who){
                                 that_room = i;
@@ -187,13 +188,13 @@ int main(int argc, char **argv)
                                 break;
                             }
                         }
-                        if(that_room>=0){
+                        if(that_room != -1){
                             for(int i = 0; i < client_num; i++){
                                 if((strcmp(client_pipe_info[i].room_name, r_name) == 0)&& client_pipe_info[i].isActive){
                                     if(write(client_pipe_info[i].parent_to_child_write_fd,content,strlen(content)+1) <= 0)
                                             syslog(LOG_ERR,"cannot Write to parent");
                                     else{
-                                        kill(pids_,SIGUSR1);
+                                        kill(client_pipe_info[i].pid,SIGUSR1);
                                     }
                                 }
                             }
@@ -203,10 +204,9 @@ int main(int argc, char **argv)
                         }
 
                     }
+                    client_num++;
                 }
             }
-            
-            client_num++;
             
             //close(ssock);
             //열어놓은 파이프 닫기
