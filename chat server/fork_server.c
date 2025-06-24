@@ -97,7 +97,7 @@ int main(int argc, char **argv)
             pid_t main_pid, client_pid;
             main_pid = getppid();
             client_pid = getpid();
-            client_work(client_pid,main_pid,csock,parent_pfd[2],child_pfd[2]);
+            client_work(client_pid,main_pid,csock,parent_pfd,child_pfd);
         }
         else if(pids_>0){ //부모 : 자식이 보낸걸 읽고 
             close(csock); // 부모는 클라이언트 소켓을 쓰지 않으니까
