@@ -94,6 +94,12 @@ int main(int argc, char **argv)
             syslog(LOG_ERR,"No PARENT PIPE!");
             exit(1);
         }
+
+        // 논블로킹 설정 (양쪽 다 가능)
+        set_nonblocking(parent_pfd[0]); // read end
+        set_nonblocking(parent_pfd[1]); // write end
+        set_nonblocking(child_pfd[0]); // read end
+        set_nonblocking(child_pfd[1]); // write end
         //클라이언트 서버 프로세스 생성 
         if((pids_ = fork())<0){
             syslog(LOG_ERR,"NO FORK!!");
