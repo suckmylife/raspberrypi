@@ -104,6 +104,12 @@ int main(int argc, char **argv)
             pid_t main_pid, client_pid;
             main_pid = getppid();
             client_pid = getpid();
+            //부모는 parent_pfd[1]에 쓰고, 자식은 parent_pfd[0]에서 읽음
+            //자식은 읽어야 하니까 반대를 닫는다
+            close(child_pfd[0]);  
+            //자식은 child_pfd[1]에 쓰고, 부모는 child_pfd[0]에서 읽음
+            //자식이 써야 하니까 반대를 닫는다
+            close(parent_pfd[1]); 
             client_work(client_pid,main_pid,csock,parent_pfd,child_pfd);
         }
         else if(pids_>0){ //부모 : 자식이 보낸걸 읽고 

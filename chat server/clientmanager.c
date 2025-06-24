@@ -4,14 +4,7 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
 {
     char mesg[BUFSIZ]; //메시지 읽는거
     ssize_t n,client_n;
-    set_nonblocking(client_sock_fd);
-    set_nonblocking(main_to_client_pipe_fds[0]);
-    //부모는 parent_pfd[1]에 쓰고, 자식은 parent_pfd[0]에서 읽음
-    //자식은 읽어야 하니까 반대를 닫는다
-    close(main_to_client_pipe_fds[1]); 
-    //자식은 child_pfd[1]에 쓰고, 부모는 child_pfd[0]에서 읽음
-    //자식이 써야 하니까 반대를 닫는다
-    close(client_to_main_pipe_fds[0]);
+    
     while(!is_shutdown)
     {
         n = recv(client_sock_fd, mesg, BUFSIZ-1, 0);
