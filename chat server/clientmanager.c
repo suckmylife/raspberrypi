@@ -22,6 +22,7 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
             mesg[n] = '\0';
             syslog(LOG_INFO,"Received Client data : %s",mesg);
             snprintf(add_mesg, BUFSIZ, "%d:%s", client_server_pid, mesg);
+
             /////test
             int flags = fcntl(client_to_main_pipe_fds[1], F_GETFL);
             if (flags == -1) {
@@ -30,6 +31,7 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
                 syslog(LOG_INFO, "client_to_main_pipe_fds[1] is valid. Flags: %d", flags);
             }
             ////test
+            
             ssize_t wlen = write(client_to_main_pipe_fds[1], add_mesg, strlen(add_mesg)+1);
             syslog(LOG_INFO,"Received Client data : %s",add_mesg);
             if(wlen <= 0) //클라이언트에게 받은걸 부모에게 쓴다.

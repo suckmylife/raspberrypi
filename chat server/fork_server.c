@@ -138,9 +138,9 @@ int main(int argc, char **argv)
                 exit(1);
             }
             //클라이언트의 메시지를 읽는다
-            if(is_write_from_client)
+            //if(is_write_from_client)
             {
-                is_write_from_client = 0;
+                //is_write_from_client = 0;
                 int n;
                 char mesg[BUFSIZ];
                 
