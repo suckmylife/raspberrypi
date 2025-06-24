@@ -14,7 +14,6 @@
 #include "signals.h"
 #include "clientmanager.h"
 
-void client_work();
 int check_command(const char* mesg, const char* command);
 
 int main(int argc, char **argv)
@@ -23,7 +22,6 @@ int main(int argc, char **argv)
     int csock; //클라이언트 소켓 
     socklen_t cli_len; //주소 구조체  길이를 저장할 변수 
     struct sockaddr_in servaddr, cliaddr;//클라이언트의 주소정보를 담을 빈그릇
-    
     daemonize(argv); //데몬화
     
     //서버소켓 생성
@@ -53,6 +51,7 @@ int main(int argc, char **argv)
     //클라이언트 여러개를 받기 위한 선언 
     
     client_num = 0; //활성화된 클라이언트
+    room_num   = 0; //생성된 채팅룸 수
     do{
         //자식이 죽었음을 알리는 플래그
         if(child_exited_flag){
@@ -63,7 +62,7 @@ int main(int argc, char **argv)
         int csock = accept(ssock,(struct sockaddr *)&cliaddr,&cli_len);
         ssize_t n,client_n; 
         //파이프 관련 초기화 
-        pid_t client_pid; //부모 자식 구분자
+        pid_t pids_; //부모 자식 구분자
         int parent_pfd[2]; //부모->자식 fd
         int child_pfd[2];  //자식->부모 fd 
         
@@ -83,17 +82,18 @@ int main(int argc, char **argv)
             exit(1);
         }
         //클라이언트 서버 프로세스 생성 
-        if((client_pid = fork())<0){
+        if((pids_ = fork())<0){
             syslog(LOG_ERR,"NO FORK!!");
             exit(1);
         }
-        else if(client_pid == 0){ //자식 : 클라이언트에서 쓴걸 읽고 부모에게 보낸다
+        else if(pids_ == 0){ //자식 : 클라이언트에서 쓴걸 읽고 부모에게 보낸다
             close(ssock); //자식은 클라이언트를 감지 하지 않아도 되니까 닫음
-            pid_t main_pid;
+            pid_t main_pid, client_pid;
             main_pid = getppid();
+            client_pid = getpid();
             client_work(main_pid,csock,parent_pfd,child_pfd);
         }
-        else if(client_pid>0){ //부모 : 자식이 보낸걸 읽고 
+        else if(pids_>0){ //부모 : 자식이 보낸걸 읽고 
             close(csock); // 부모는 클라이언트 소켓을 쓰지 않으니까
             //부모는 parent_pfd[1]에 쓰고, 자식은 parent_pfd[0]에서 읽음
             //부모는 써야 하니까 반대를 닫는다
@@ -101,12 +101,12 @@ int main(int argc, char **argv)
             //자식은 child_pfd[1]에 쓰고, 부모는 child_pfd[0]에서 읽음
             //부모는 읽어야 하니까 반대를 닫는다
             close(child_pfd[1]);
-            client_pipe_info[client_num].pid = client_pid;
+            client_pipe_info[client_num].pid = pids_;
             //부모가 자식에게 쓰고 있는 파이프의 단 할당
             client_pipe_info[client_num].parent_to_child_write_fd  = parent_pfd[1];
             //자식이 부모에게 온걸 읽을 수 있는 파이프의 단 할당
             client_pipe_info[client_num].child_to_parent_read_fd  = child_pfd[0];
-            
+            client_pipe_info[client_num].isActive = true;
             if(client_num >= MAX_CLIENT){
                 syslog(LOG_ERR,"Index out of client number");
                 exit(1);
@@ -122,25 +122,62 @@ int main(int argc, char **argv)
                 }
                 else{
                     mesg[n] = '\0';
-                    //명령어
-                    if(mesg[0] == "/"){
-                        int isAdd = check_command(mesg, "add");
-                        int isJoin = check_command(mesg, "join");
-                        int isRm = check_command(mesg, "rm");
-                        int isList = check_command(mesg, "list");
-                        int isJoin = check_command(mesg, "join");
+                    char *pid_str;
+                    char *content;
 
+                    // 첫 번째 호출: 원본 문자열과 구분자를 넘김
+                    pid_str = strtok(mesg, ":");  // PID 부분 추출
+                    pid_t from_who = atoi(pid_str);
+                    // 두 번째 호출: NULL과 구분자를 넘김 (내부적으로 이전 위치 기억)
+                    content = strtok(NULL, ":");  // 메시지 내용 부분 추출
+                    //명령어
+                    if(content[0] == "/"){
+                        int isAdd = check_command(content, "add");
+                        int isJoin = check_command(content, "join");
+                        int isRm = check_command(content, "rm");
+                        int isList = check_command(content, "list");
+                        //int isJoin = check_command(content, "join");
+                        memset(&client_pipe_info[client_num], 0, sizeof(client_pipe_info[client_num]));
                         if(isAdd){
-                            pid_t chat_pid;
-                            chat_pid = fork();
+                            strncpy(room_info[room_num].name, content + 2 + strlen("add"), NAME - 1);
+                            room_info[room_num].name[NAME - 1] = '\0';  // 안전한 널 종료
+                            room_num++;
+                        }
+                        else if(isJoin){
+                            
+                            strncpy(client_pipe_info[client_num].room_name, content + 2 + strlen("join"), NAME - 1);
+                            client_pipe_info[client_num].room_name[NAME - 1] = '\0';  // 안전한 널 종료
                         }
                     }
-                    else if(isFirst){ // 클라이언트 이름
-                        client_pipe_info[client_num].name = mesg;
-                        isFirst = false;
+                    else if(client_pipe_info[client_num].name[0] == '\0'){ // 클라이언트 이름
+                        strncpy(client_pipe_info[client_num].name, content, NAME - 1);
+                        client_pipe_info[client_num].name[NAME - 1] = '\0';
                     }
-                    else{ // 클라이언트 채팅 내용
-                        
+                    else{ // 클라이언트 채팅 뿌리기
+                        //누가 보냈는지 확인하기
+                        int that_room;
+                        char *r_name;
+                        for(int i = 0; i < client_num; i++){
+                            if(client_pipe_info[i].pid == from_who){
+                                that_room = i;
+                                r_name = client_pipe_info[i].room_name;
+                                break;
+                            }
+                        }
+                        if(that_room>=0){
+                            for(int i = 0; i < client_num; i++){
+                                if((strcmp(client_pipe_info[i].room_name, r_name) == 0)&& client_pipe_info[i].isActive){
+                                    if(write(client_pipe_info[i].parent_to_child_write_fd,content,strlen(content)+1) <= 0)
+                                            syslog(LOG_ERR,"cannot Write to parent");
+                                    else{
+                                        kill(pids_,SIGUSR1);
+                                    }
+                                }
+                            }
+                        }
+                        else{
+                            syslog(LOG_ERR,"NO THAT ROOM!!!");
+                        }
 
                     }
                 }
@@ -161,12 +198,6 @@ int main(int argc, char **argv)
     return 0;
 }
 
-
-void client_work()
-{
-    
-}
-
 int check_command(const char* mesg, const char* command){
     // 1. 메시지가 '/'로 시작하는지 확인
     if (mesg[0] != '/') {
@@ -184,6 +215,5 @@ int check_command(const char* mesg, const char* command){
             return 1; // 명령어가 정확히 일치하고 뒤에 공백/종료 문자가 옴
         }
     }
-    
     return 0; // 명령어를 찾지 못했거나 형식이 맞지 않음
 }

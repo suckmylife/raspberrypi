@@ -1,6 +1,6 @@
 #include "clientmanager.h"
 
-void client_work(pid_t main_server_pid, int client_sock_fd, int client_read_pipe_fd, int client_write_pipe_fd)
+void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_fd, int client_read_pipe_fd, int client_write_pipe_fd)
 {
     char mesg[BUFSIZ]; //메시지 읽는거
     ssize_t n,client_n;
@@ -20,9 +20,11 @@ void client_work(pid_t main_server_pid, int client_sock_fd, int client_read_pipe
             continue;
         }
         else if(n > 0){
+            char add_mesg[BUFSIZ];
             mesg[n] = '\0';
             syslog(LOG_INFO,"Received data : %s",mesg);
-            if(write(client_to_main_pipe_fds[1],mesg,n) <= 0) //클라이언트에게 받은걸 부모에게 쓴다.
+            snprintf(add_mesg, BUFSIZ, "%d:%s", client_server_pid, mesg);
+            if(write(client_to_main_pipe_fds[1],add_mesg,strlen(add_mesg)+1) <= 0) //클라이언트에게 받은걸 부모에게 쓴다.
                 syslog(LOG_ERR,"cannot Write to parent");
             else{
                 kill(main_server_pid,SIGUSR2);

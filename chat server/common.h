@@ -3,14 +3,13 @@
 
 #include <stdbool.h>
 #include <unistd.h>
+#include <vector>
 
 #define TCP_PORT   5100
 #define MAX_CLIENT 32
 #define CHAT_ROOM  4
 #define NAME       50
 
-extern volatile sig_atomic_t client_num; // 활성화된 클라이언트 수
-extern volatile sig_atomic_t room_num; // 활성화된 채팅방 수
 // 각 자식 프로세스의 파이프 정보를 담는 구조체
 // fd가 부모관점인 이유는 자식과 통신하기 위해 그런 것
 typedef struct {
@@ -20,21 +19,17 @@ typedef struct {
     int parent_to_child_write_fd;
     // 이 자식이 부모에게 메시지를 보낼 때, 부모가 '읽을' 파이프의 FD (부모 관점)
     int child_to_parent_read_fd;
-    //입장한 채팅방의 PID
-    pid_t  room_pid;
     //활성 비활성 트리거
     bool isActive;
-    char name[NAME];
+    char name[NAME]; // 닉네임
+    char room_name[NAME]; // 채팅방 이름
 } pipeInfo;
 
 typedef struct {
-    pid_t pid;         // 채팅방 서버의 PID
     char name[NAME];   // 채팅방 이름
-    int user_count;    // 현재 채팅방에 있는 사용자 수
 } roomInfo;
 
 extern struct roomInfo room_info[CHAT_ROOM]; // 채팅방 목록
-extern struct pipeInfo chat_pipe_info[MAX_CLIENT]; // 채팅서버 & 클라이언트 서버의 파이프 
 extern struct pipeInfo client_pipe_info[CHAT_ROOM]; // 클라이언트서버 & 메인 서버의 파이프 
 
 // volatile을 사용하는 이유
@@ -74,6 +69,7 @@ extern volatile sig_atomic_t is_write_from_chat_room; // 채팅서버가 쓴다
 extern volatile sig_atomic_t is_write_from_client;    // 클라이언트 서버가 쓴다
 extern volatile sig_atomic_t is_shutdown;             // 종료 신호
 extern volatile sig_atomic_t child_exited_flag;       // 좀비방지하라는 신호
-
+extern volatile sig_atomic_t client_num;              // 활성화된 클라이언트 수
+extern volatile sig_atomic_t room_num;                // 활성화된 채팅방 수
 
 #endif // COMMON_H
