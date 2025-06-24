@@ -497,3 +497,79 @@ int main(int argc, char **argv)
 
     return 0;
 }
+
+// 메인 루프 안에서
+if (client_message_arrived) {
+    // 모든 클라이언트 서버의 파이프를 순회하며 메시지 읽기 시도
+    for (int i = 0; i < client_num; i++) {
+        if (client_pipe_info[i].isActive) {
+            char mesg_buffer[BUFSIZ];
+            ssize_t bytes_read;
+
+            bytes_read = read(client_pipe_info[i].child_to_parent_read_fd, mesg_buffer, BUFSIZ - 1);
+
+            if (bytes_read > 0) {
+                mesg_buffer[bytes_read] = '\0';
+                syslog(LOG_INFO, "Main: Received from client %d: %s", client_pipe_info[i].pid, mesg_buffer);
+
+                // --- 여기서 메시지 파싱 및 처리 로직 시작 ---
+                // 예시: "/add chatroom_name" 파싱
+                if (mesg_buffer[0] == '/' && strncmp(mesg_buffer + 1, "add ", 4) == 0) {
+                    char room_name[MAX_NAME_LEN];
+                    // room_name 추출 로직 (예: sscanf 또는 strtok 사용)
+                    // sscanf(mesg_buffer, "/add %s", room_name);
+
+                    // 1. 새로운 채팅방 서버 프로세스 생성 (fork!)
+                    int main_to_room_pipe[2]; // 메인 -> 채팅방
+                    int room_to_main_pipe[2]; // 채팅방 -> 메인
+
+                    if (pipe(main_to_room_pipe) == -1 || pipe(room_to_main_pipe) == -1) {
+                        syslog(LOG_ERR, "Pipe creation failed for new chat room: %m");
+                        // 클라이언트에게 에러 메시지 전송
+                        continue;
+                    }
+
+                    pid_t room_pid = fork();
+                    if (room_pid == -1) {
+                        syslog(LOG_ERR, "Fork failed for new chat room: %m");
+                        // 클라이언트에게 에러 메시지 전송
+                        close(main_to_room_pipe[0]); close(main_to_room_pipe[1]);
+                        close(room_to_main_pipe[0]); close(room_to_main_pipe[1]);
+                        continue;
+                    } else if (room_pid == 0) { // 자식: 새로운 채팅방 서버 프로세스
+                        close(main_to_room_pipe[1]); // 자식은 부모로부터 읽기
+                        close(room_to_main_pipe[0]); // 자식은 부모에게 쓰기
+                        // 메인 서버의 모든 소켓, 파이프 FD 닫기 (자식에게 불필요)
+                        // ...
+
+                        // 채팅방 서버 로직 실행
+                        run_chatroom_server_logic(room_name, main_to_room_pipe[0], room_to_main_pipe[1]);
+                        exit(0); // 채팅방 서버는 여기서 종료
+                    } else { // 부모: 메인 서버 프로세스
+                        close(main_to_room_pipe[0]); // 부모는 자식에게 쓰기
+                        close(room_to_main_pipe[1]); // 부모는 자식으로부터 읽기
+
+                        // 채팅방 서버 정보 저장
+                        chat_room_info[room_num].pid = room_pid;
+                        chat_room_info[room_num].parent_to_child_write_fd = main_to_room_pipe[1];
+                        chat_room_info[room_num].child_to_parent_read_fd = room_to_main_pipe[0];
+                        chat_room_info[room_num].isActive = true;
+                        strcpy(chat_room_info[room_num].name, room_name); // 방 이름 저장
+                        room_num++;
+
+                        syslog(LOG_INFO, "Main: Chat room '%s' (PID: %d) created.", room_name, room_pid);
+                        // 클라이언트에게 방 생성 성공 메시지 전송
+                        // (client_pipe_info[i].parent_to_child_write_fd 사용)
+                    }
+                } else {
+                    // 일반 채팅 메시지 또는 다른 명령어 처리
+                    // ...
+                }
+                // --- 메시지 파싱 및 처리 로직 끝 ---
+            }
+            // ... (bytes_read == 0, bytes_read == -1 처리)
+        }
+    }
+    client_message_arrived = 0; // 모든 클라이언트 서버의 파이프를 확인했으므로 플래그 초기화
+}
+

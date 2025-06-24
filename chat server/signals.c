@@ -128,3 +128,18 @@ void clean_active_process()
         }
     }
 }
+
+// 소켓을 논블로킹 모드로 설정하는 함수
+int set_nonblocking(int fd) {
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1) {
+        syslog(LOG_ERR,"fcntl F_GETFL");
+        return -1;
+    }
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1){
+        syslog(LOG_ERR,"fcntl F_SETFL O_NONBLOCK");
+        return -1;
+    }
+    return 0;
+}
+

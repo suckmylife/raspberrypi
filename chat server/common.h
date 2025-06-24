@@ -12,6 +12,7 @@
 extern volatile sig_atomic_t client_num; // 활성화된 클라이언트 수
 extern volatile sig_atomic_t room_num; // 활성화된 채팅방 수
 // 각 자식 프로세스의 파이프 정보를 담는 구조체
+// fd가 부모관점인 이유는 자식과 통신하기 위해 그런 것
 typedef struct {
     // 자식 프로세스의 PID
     pid_t pid;             
@@ -23,6 +24,7 @@ typedef struct {
     pid_t  room_pid;
     //활성 비활성 트리거
     bool isActive;
+    char name[NAME];
 } pipeInfo;
 
 typedef struct {
@@ -72,4 +74,6 @@ extern volatile sig_atomic_t is_write_from_chat_room; // 채팅서버가 쓴다
 extern volatile sig_atomic_t is_write_from_client;    // 클라이언트 서버가 쓴다
 extern volatile sig_atomic_t is_shutdown;             // 종료 신호
 extern volatile sig_atomic_t child_exited_flag;       // 좀비방지하라는 신호
+
+
 #endif // COMMON_H

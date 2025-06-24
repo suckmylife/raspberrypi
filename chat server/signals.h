@@ -29,5 +29,7 @@ void setup_client_handler();   //클라이언트서버 신호 핸들러 설정
 //활성화된 프로세스 정리
 void clean_active_process();
 
+void int set_nonblocking(int fd);
+
 
 #endif // SIGNAL_H

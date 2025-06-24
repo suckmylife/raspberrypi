@@ -7,10 +7,15 @@
 #include <sys/stat.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
+#include <errno.h> 
 
 #include "deamon.h"
 #include "common.h"
 #include "signals.h"
+#include "clientmanager.h"
+
+void client_work();
+int check_command(char mesg[BUFSIZ], char find[BUFSIZ]);
 
 int main(int argc, char **argv)
 {
@@ -55,9 +60,10 @@ int main(int argc, char **argv)
             child_exited_flag = 0;
         }
         //클라이언트 연결 감지중 
-        int n, csock = accept(ssock,(struct sockaddr *)&cliaddr,&cli_len);
+        int csock = accept(ssock,(struct sockaddr *)&cliaddr,&cli_len);
+        ssize_t n,client_n; 
         //파이프 관련 초기화 
-        pid_t new_pid; //부모 자식 구분자
+        pid_t client_pid; //부모 자식 구분자
         int parent_pfd[2]; //부모->자식 fd
         int child_pfd[2];  //자식->부모 fd 
         
@@ -77,53 +83,18 @@ int main(int argc, char **argv)
             exit(1);
         }
         //클라이언트 서버 프로세스 생성 
-        if((new_pid = fork())<0){
+        if((client_pid = fork())<0){
             syslog(LOG_ERR,"NO FORK!!");
             exit(1);
         }
-        else if(new_pid == 0){ //자식 : 클라이언트에서 쓴걸 읽고 부모에게 보낸다
-            pid
-            char mesg[BUFSIZ]; //메시지 읽는거
+        else if(client_pid == 0){ //자식 : 클라이언트에서 쓴걸 읽고 부모에게 보낸다
             close(ssock); //자식은 클라이언트를 감지 하지 않아도 되니까 닫음
-
-            //부모는 parent_pfd[1]에 쓰고, 자식은 parent_pfd[0]에서 읽음
-            //자식은 읽어야 하니까 반대를 닫는다
-            close(parent_pfd[1]); 
-            //자식은 child_pfd[1]에 쓰고, 부모는 child_pfd[0]에서 읽음
-            //자식이 써야 하니까 반대를 닫는다
-            close(child_pfd[0]);
-            while(1){
-                //클라이언트에서 메시지를 받는다
-                if((n=read(csock,mesg,BUFSIZ)) <= 0){
-                    syslog(LOG_ERR,"cannot read client message");
-                    break;
-                }
-                else{
-                    mesg[n] = '\0';
-                    syslog(LOG_INFO,"Received data : %s",mesg);
-                    if(write(child_pfd[1],mesg,n) <= 0) //클라이언트에게 받은걸 부모에게 쓴다.
-                        syslog(LOG_ERR,"cannot Write to parent");
-                    kill();
-                }
-                //부모의 메시지를 읽는다
-                if((n=read(parent_pfd[0],mesg,BUFSIZ)) <= 0){
-                    syslog(LOG_ERR,"cannot read SERVER message");
-                    break;
-                }
-                else{
-                    mesg[n] = '\0';
-                    syslog(LOG_INFO,"Received data : %s",mesg);
-                    if(write(csock,mesg,n) <= 0) //클라이언트에게 받은걸 부모에게 쓴다.
-                        syslog(LOG_ERR,"cannot Write to client");
-                }
-            }
-            close(csock); //할일 다 했으니까 종료
-            //열어놓은 파이프 닫기
-            close(parent_pfd[0]);
-            close(child_pfd[1]); 
+            client_work(csock,parent_pfd,child_pfd);
         }
         else{ //부모 : 자식이 보낸걸 읽고 
-            char mesg[BUFSIZ]; //메시지 읽는거
+            pid_t main_pid, client_pid;
+            main_pid = getppid();
+            client_pid = getpid();
             close(csock); // 부모는 클라이언트 소켓을 쓰지 않으니까
             //부모는 parent_pfd[1]에 쓰고, 자식은 parent_pfd[0]에서 읽음
             //부모는 써야 하니까 반대를 닫는다
@@ -131,35 +102,53 @@ int main(int argc, char **argv)
             //자식은 child_pfd[1]에 쓰고, 부모는 child_pfd[0]에서 읽음
             //부모는 읽어야 하니까 반대를 닫는다
             close(child_pfd[1]);
-            pipe_info[client_num].pid = new_pid;
+            client_pipe_info[client_num].pid = client_pid;
             //부모가 자식에게 쓰고 있는 파이프의 단 할당
-            pipe_info[client_num].parent_to_child_write_fd  = parent_pfd[1];
+            client_pipe_info[client_num].parent_to_child_write_fd  = parent_pfd[1];
             //자식이 부모에게 온걸 읽을 수 있는 파이프의 단 할당
-            pipe_info[client_num].child_to_parent_read_fd  = child_pfd[0];
-            client_num++;
+            client_pipe_info[client_num].child_to_parent_read_fd  = child_pfd[0];
+            
             if(client_num >= MAX_CLIENT){
                 syslog(LOG_ERR,"Index out of client number");
                 exit(1);
             }
-
-            for(int i = 0; i<client_num; i++)
+            //클라이언트의 메시지를 읽는다
+            if(is_write_from_client)
             {
-                //자식의 메시지를 읽는다
-                if((n=read(pipe_info[i].child_to_parent_read_fd,mesg,BUFSIZ)) <= 0){
+                int n;
+                char mesg[BUFSIZ];
+                
+                if((n=read(child_pfd[0],mesg,BUFSIZ)) <= 0){
                     syslog(LOG_ERR,"cannot read child message");
-                    break;
                 }
                 else{
-                    //다른 자식프로세스에 메시지를 보낸다.
                     mesg[n] = '\0';
-                    for(int j = 0; j < client_num; j++){
-                        syslog(LOG_INFO,"Received data : %s",mesg);
-                        if(write(pipe_info[j].parent_to_child_write_fd,mesg,n) <= 0) 
-                            syslog(LOG_ERR,"cannot Write to child");
+                    //명령어
+                    if(mesg[0] == "/"){
+                        int isAdd = check_command(mesg, "add");
+                        int isJoin = check_command(mesg, "join");
+                        int isRm = check_command(mesg, "rm");
+                        int isList = check_command(mesg, "list");
+                        int isJoin = check_command(mesg, "join");
+
+                        if(isAdd){
+                            pid_t chat_pid;
+                            chat_pid = fork();
+                        }
                     }
-                    
+                    else if(isFirst){ // 클라이언트 이름
+                        client_pipe_info[client_num].name = mesg;
+                        isFirst = false;
+                    }
+                    else{ // 클라이언트 채팅 내용
+                        
+
+                    }
                 }
             }
+            
+            client_num++;
+            
             close(ssock);
             //열어놓은 파이프 닫기
             close(parent_pfd[1]);
@@ -171,4 +160,20 @@ int main(int argc, char **argv)
     close(ssock);
 
     return 0;
+}
+
+
+void client_work()
+{
+    
+}
+
+int check_command(char mesg[BUFSIZ], char find[BUFSIZ]){
+    char *p = strstr(mesg, find);
+
+    if(p != NULL){
+        int pos = p - mesg;
+        return (pos == 1) ? 1 : -1;
+    }
+    return -1;
 }
