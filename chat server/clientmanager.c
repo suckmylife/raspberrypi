@@ -8,8 +8,8 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
     while(!is_shutdown)
     {
         //열어놓은 파이프 닫기
-        close(main_to_client_pipe_fds[1]);
-        close(client_to_main_pipe_fds[0]); 
+        close(main_to_client_pipe_fds[0]);
+        close(client_to_main_pipe_fds[1]); 
         n = recv(client_sock_fd, mesg, BUFSIZ-1, 0);
         //클라이언트에서 메시지를 받는다
         if( n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)){
@@ -20,8 +20,8 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
             mesg[n] = '\0';
             syslog(LOG_INFO,"Received Client data : %s",mesg);
             snprintf(add_mesg, BUFSIZ, "%d:%s", client_server_pid, mesg);
-            syslog(LOG_INFO,"Received Client data : %s",add_mesg);
-            if(write(client_to_main_pipe_fds[1],add_mesg,strlen(add_mesg)+1) <= 0) //클라이언트에게 받은걸 부모에게 쓴다.
+            //syslog(LOG_INFO,"Received Client data : %s",add_mesg);
+            if(write(client_to_main_pipe_fds[0],add_mesg,strlen(add_mesg)+1) <= 0) //클라이언트에게 받은걸 부모에게 쓴다.
                 syslog(LOG_ERR,"cannot Write to parent");
             else{
                 kill(main_server_pid,SIG_FROM_CLIENT);
