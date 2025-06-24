@@ -8,7 +8,7 @@ void daemonize(int argc, char *argv[])
     pid_t pid;
 
     if(argc < 2){
-        printf("Usage : %s command \n",program_name[0]);
+        printf("Usage : %s command \n",argv[0]);
         return -1;
     }
 
@@ -50,7 +50,7 @@ void daemonize(int argc, char *argv[])
     fd1 = dup(0);
     fd2 = dup(0);
 
-    openlog(program_name[1],LOG_CONS, LOG_DAEMON);
+    openlog(argv[1],LOG_CONS, LOG_DAEMON);
     if(fd0 != 0 || fd1 != 1 || fd2 != 2){
         syslog(LOG_ERR, "unexpected file descriptors %d %d %d",fd0,fd1,fd2);
         return -1;

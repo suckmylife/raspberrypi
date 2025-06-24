@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <unistd.h>
+#include <signal.h>
 
 #define TCP_PORT   5100
 #define MAX_CLIENT 32
@@ -28,8 +29,8 @@ typedef struct {
     char name[NAME];   // 채팅방 이름
 } roomInfo;
 
-extern struct roomInfo room_info[CHAT_ROOM]; // 채팅방 목록
-extern struct pipeInfo client_pipe_info[CHAT_ROOM]; // 클라이언트서버 & 메인 서버의 파이프 
+extern roomInfo room_info[CHAT_ROOM]; // 채팅방 목록
+extern pipeInfo client_pipe_info[CHAT_ROOM]; // 클라이언트서버 & 메인 서버의 파이프 
 
 // volatile을 사용하는 이유
 /*

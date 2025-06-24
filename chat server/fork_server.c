@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
 #include <signal.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -8,6 +9,7 @@
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <errno.h> 
+#include <netinet/in.h>
 
 #include "deamon.h"
 #include "common.h"
@@ -18,11 +20,14 @@ int check_command(const char* mesg, const char* command);
 
 int main(int argc, char **argv)
 {
-    int ssock;  //서버소켓 (클라이언트 소켓이 연결되었을때만 사용)
-    int csock; //클라이언트 소켓 
-    socklen_t cli_len; //주소 구조체  길이를 저장할 변수 
-    struct sockaddr_in servaddr, cliaddr;//클라이언트의 주소정보를 담을 빈그릇
-    daemonize(argc, argv); //데몬화
+    int ssock;                                      //서버소켓 (클라이언트 소켓이 연결되었을때만 사용)
+    int csock;                                      //클라이언트 소켓 
+    socklen_t cli_len;                              //주소 구조체  길이를 저장할 변수 
+    struct sockaddr_in servaddr, cliaddr;           //클라이언트의 주소정보를 담을 빈그릇
+    roomInfo room_info[CHAT_ROOM] = {0};            // 메모리 할당 (초기화 포함)
+    pipeInfo client_pipe_info[CHAT_ROOM] = {0};     // 메모리 할당 (초기화 포함)
+
+    daemonize(argc, argv);                          //데몬화
     
     //서버소켓 생성
     if((ssock = socket(AF_INET,SOCK_STREAM, 0))<0){
@@ -91,7 +96,7 @@ int main(int argc, char **argv)
             pid_t main_pid, client_pid;
             main_pid = getppid();
             client_pid = getpid();
-            client_work(main_pid,csock,parent_pfd,child_pfd);
+            client_work(client_pid,main_pid,csock,parent_pfd,child_pfd);
         }
         else if(pids_>0){ //부모 : 자식이 보낸걸 읽고 
             close(csock); // 부모는 클라이언트 소켓을 쓰지 않으니까
