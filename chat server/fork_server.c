@@ -27,6 +27,11 @@ int main(int argc, char **argv)
     roomInfo room_info[CHAT_ROOM] = {0};            // 메모리 할당 (초기화 포함)
     pipeInfo client_pipe_info[CHAT_ROOM] = {0};     // 메모리 할당 (초기화 포함)
 
+    //시그널 등록
+    setup_client_handler();
+    setup_chatroom_handler();
+    child_close_handler();
+
     daemonize(argc, argv);                          //데몬화
     
     //서버소켓 생성
@@ -120,6 +125,7 @@ int main(int argc, char **argv)
             //클라이언트의 메시지를 읽는다
             if(is_write_from_client)
             {
+                is_write_from_client = 0;
                 int n;
                 char mesg[BUFSIZ];
                 
