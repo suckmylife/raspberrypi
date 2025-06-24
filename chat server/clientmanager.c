@@ -20,8 +20,9 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
             if(write(client_to_main_pipe_fds[1],add_mesg,strlen(add_mesg)+1) <= 0) //클라이언트에게 받은걸 부모에게 쓴다.
                 syslog(LOG_ERR,"cannot Write to parent");
             else{
+                syslog(LOG_INFO,"before Write data to Main : %s",mesg);
                 kill(main_server_pid,SIGUSR2);
-                syslog(LOG_INFO,"Write data to Main : %s",mesg);
+                syslog(LOG_INFO,"after Write data to Main : %s",mesg);
             }
         } else if (n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             // 데이터가 아직 없음 (논블로킹 모드)
