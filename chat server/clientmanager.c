@@ -10,6 +10,8 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
         //열어놓은 파이프 닫기
         close(main_to_client_pipe_fds[1]);
         close(client_to_main_pipe_fds[0]); 
+        set_nonblocking(client_to_main_pipe_fds[1]);
+
         n = recv(client_sock_fd, mesg, BUFSIZ-1, 0);
         //클라이언트에서 메시지를 받는다
         if( n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)){
@@ -36,9 +38,10 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
                 kill(main_server_pid,SIG_FROM_CLIENT);
                 syslog(LOG_INFO,"after Write data to Main : %s",mesg);
             }
-        } else if (n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        } else if (n == -1 || (errno == EAGAIN || errno == EWOULDBLOCK)) {
             // 데이터가 아직 없음 (논블로킹 모드)
             syslog(LOG_ERR, "Error reading client message");
+            usleep(50 * 1000);
             continue;
         }
         else{
