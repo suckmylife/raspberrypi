@@ -44,6 +44,7 @@ int main(int argc, char **argv)
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
     servaddr.sin_port = htons(TCP_PORT);
+    set_nonblocking(ssock); 
     //서버소켓 연결
     if(bind(ssock,(struct sockaddr *)&servaddr,sizeof(servaddr))<0){
         syslog(LOG_ERR,"No Bind");
@@ -70,6 +71,7 @@ int main(int argc, char **argv)
         }
         //클라이언트 연결 감지중 
         int csock = accept(ssock,(struct sockaddr *)&cliaddr,&cli_len);
+        set_nonblocking(csock);
         ssize_t n,client_n; 
         //파이프 관련 초기화 
         pid_t pids_; //부모 자식 구분자
@@ -143,6 +145,9 @@ int main(int argc, char **argv)
                     // 두 번째 호출: NULL과 구분자를 넘김 (내부적으로 이전 위치 기억)
                     content = strtok(NULL, ":");  // 메시지 내용 부분 추출
                     //명령어
+                    syslog(LOG_INFO,"Receive : %s",mesg);
+                    syslog(LOG_INFO,"CONTENT : %s",content);
+                    syslog(LOG_INFO,"CONTENT : %d",pid_str);
                     if(content[0] == '/'){
                         int isAdd = check_command(content, "add");
                         int isJoin = check_command(content, "join");
