@@ -73,8 +73,9 @@ int main(int argc, char **argv)
         
         //디버깅용 코드
         //클라이언트의 IP 주소를 사람이 읽을 수 있는 문자열 형태로 변환하는 역할
-        inet_ntop(AF_INET, &cliaddr.sin_addr,mesg,BUFSIZ);
-        syslog(LOG_INFO,"Client is connected : %s",mesg);
+        char check_addr[BUFSIZ];
+        inet_ntop(AF_INET, &cliaddr.sin_addr,check_addr,BUFSIZ);
+        syslog(LOG_INFO,"Client is connected : %s",check_addr);
 
         //자식 --> 부모 파이프 생성
         if(pipe(child_pfd)<0){ 
@@ -136,7 +137,7 @@ int main(int argc, char **argv)
                     // 두 번째 호출: NULL과 구분자를 넘김 (내부적으로 이전 위치 기억)
                     content = strtok(NULL, ":");  // 메시지 내용 부분 추출
                     //명령어
-                    if(content[0] == "/"){
+                    if(content[0] == '/'){
                         int isAdd = check_command(content, "add");
                         int isJoin = check_command(content, "join");
                         int isRm = check_command(content, "rm");

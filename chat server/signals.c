@@ -108,24 +108,6 @@ void clean_active_process()
                 break; // 해당 자식을 찾았으니 루프를 종료합니다.
             }
         }
-
-        for (int i = 0; i < room_num; i++) {
-            if (chat_pipe_info[i].pid == pid) {
-                // 해당 자식의 파이프 FD 닫기: 자원 누수를 방지하고, 파이프의 
-                // 다른 끝에 EOF를 알립니다.
-                close(chat_pipe_info[i].parent_to_child_write_fd); 
-                close(chat_pipe_info[i].child_to_parent_read_fd);  
-                
-                // 배열에서 해당 자식의 정보를 제거하고 배열을 재정렬합니다.
-                // 마지막 요소를 현재 위치로 이동시키고 유효한 자식 수를 감소시킵니다.
-                for (int j = i; j < room_num - 1; j++) {
-                    chat_pipe_info[j] = chat_pipe_info[j+1];
-                }
-                room_num--;
-                syslog(LOG_INFO, "Parent: Child %d removed from list. Active children: %d.", pid, client_num);
-                break; // 해당 자식을 찾았으니 루프를 종료합니다.
-            }
-        }
     }
 }
 

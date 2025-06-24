@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <signal.h>
+#include <stdlib.h>
 
 #define TCP_PORT   5100
 #define MAX_CLIENT 32

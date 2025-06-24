@@ -6,6 +6,10 @@
 #include <unistd.h>
 #include <string.h>
 #include "common.h"
+#include <sys/wait.h>
+#include <syslog.h>
+#include <fcntl.h>
+#include <errno.h>
 
 #define SIG_FROM_CHATROOM SIGUSR1  // 채팅방에서 메시지가 왔을 때
 #define SIG_FROM_CLIENT SIGUSR2    // 클라이언트에서 메시지가 왔을 때
