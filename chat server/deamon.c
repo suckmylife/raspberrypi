@@ -1,12 +1,3 @@
-#include <stdio.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <string.h>
-#include <syslog.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/resource.h>
-
 #include "deamon.h"
 
 void daemonize(const char *program_name)

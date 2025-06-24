@@ -1,12 +1,9 @@
 #include "clientmanager.h"
 
-void client_work(int client_sock_fd, int *main_to_client_pipe_fds, int *client_to_main_pipe_fds)
+void client_work(pid_t main_server_pid, int client_sock_fd, int client_read_pipe_fd, int client_write_pipe_fd)
 {
-    pid_t main_pid, client_pid;
     char mesg[BUFSIZ]; //메시지 읽는거
-    
-    main_pid = getppid();
-    client_pid = getpid();
+    ssize_t n,client_n;
     set_nonblocking(client_sock_fd);
     set_nonblocking(main_to_client_pipe_fds[0]);
     //부모는 parent_pfd[1]에 쓰고, 자식은 parent_pfd[0]에서 읽음
@@ -17,7 +14,7 @@ void client_work(int client_sock_fd, int *main_to_client_pipe_fds, int *client_t
     close(client_to_main_pipe_fds[0]);
     while(!is_shutdown)
     {
-        n=read(client_sock_fd,mesg,BUFSIZ-1)
+        n = recv(client_sock_fd, mesg, BUFSIZ-1, 0);
         //클라이언트에서 메시지를 받는다
         if( n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)){
             continue;
@@ -28,8 +25,11 @@ void client_work(int client_sock_fd, int *main_to_client_pipe_fds, int *client_t
             if(write(client_to_main_pipe_fds[1],mesg,n) <= 0) //클라이언트에게 받은걸 부모에게 쓴다.
                 syslog(LOG_ERR,"cannot Write to parent");
             else{
-                kill(main_pid,SIGUSR2);
+                kill(main_server_pid,SIGUSR2);
             }
+        } else if (n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            // 데이터가 아직 없음 (논블로킹 모드)
+            continue;
         }
         else{
             syslog(LOG_ERR,"cannot read client message");

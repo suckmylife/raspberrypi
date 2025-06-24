@@ -15,7 +15,7 @@
 #include "clientmanager.h"
 
 void client_work();
-int check_command(char mesg[BUFSIZ], char find[BUFSIZ]);
+int check_command(const char* mesg, const char* command);
 
 int main(int argc, char **argv)
 {
@@ -89,12 +89,11 @@ int main(int argc, char **argv)
         }
         else if(client_pid == 0){ //자식 : 클라이언트에서 쓴걸 읽고 부모에게 보낸다
             close(ssock); //자식은 클라이언트를 감지 하지 않아도 되니까 닫음
-            client_work(csock,parent_pfd,child_pfd);
-        }
-        else{ //부모 : 자식이 보낸걸 읽고 
-            pid_t main_pid, client_pid;
+            pid_t main_pid;
             main_pid = getppid();
-            client_pid = getpid();
+            client_work(main_pid,csock,parent_pfd,child_pfd);
+        }
+        else if(client_pid>0){ //부모 : 자식이 보낸걸 읽고 
             close(csock); // 부모는 클라이언트 소켓을 쓰지 않으니까
             //부모는 parent_pfd[1]에 쓰고, 자식은 parent_pfd[0]에서 읽음
             //부모는 써야 하니까 반대를 닫는다
@@ -168,12 +167,23 @@ void client_work()
     
 }
 
-int check_command(char mesg[BUFSIZ], char find[BUFSIZ]){
-    char *p = strstr(mesg, find);
-
-    if(p != NULL){
-        int pos = p - mesg;
-        return (pos == 1) ? 1 : -1;
+int check_command(const char* mesg, const char* command){
+    // 1. 메시지가 '/'로 시작하는지 확인
+    if (mesg[0] != '/') {
+        return 0; // '/'로 시작하지 않으면 명령어가 아님
     }
-    return -1;
+
+    // 2. 명령어 부분과 일치하는지 확인
+    // mesg + 1: '/' 다음 문자부터 비교 시작
+    // strlen(command): 비교할 명령어의 길이
+    if (strncmp(mesg + 1, command, strlen(command)) == 0) {
+        // 3. 명령어 뒤에 공백이 오거나 문자열이 끝나는지 확인
+        // (예: "/add" 뒤에 " " 또는 "\0"이 와야 함. "/addroom" 같은 경우를 걸러냄)
+        char char_after_command = mesg[1 + strlen(command)];
+        if (char_after_command == ' ' || char_after_command == '\0' || char_after_command == '\n') {
+            return 1; // 명령어가 정확히 일치하고 뒤에 공백/종료 문자가 옴
+        }
+    }
+    
+    return 0; // 명령어를 찾지 못했거나 형식이 맞지 않음
 }
