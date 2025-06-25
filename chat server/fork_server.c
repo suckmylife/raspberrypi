@@ -15,7 +15,7 @@
 #include "common.h"
 #include "signals.h"
 #include "clientmanager.h"
-
+// 뭐라는거야
 int check_command(const char* mesg, const char* command);
 
 int main(int argc, char **argv)
