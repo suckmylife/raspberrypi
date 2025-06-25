@@ -11,6 +11,7 @@
 #include <errno.h>    // errno 사용
 #include <netinet/in.h> // struct sockaddr_in 사용
 #include <fcntl.h>    // O_NONBLOCK 사용을 위한 fcntl()
+#include <stdbool.h>  // bool 타입 사용을 위해 추가
 
 #include "deamon.h" // 데몬화 함수가 여기에 있다고 가정
 #include <syslog.h> // syslog 사용
@@ -37,31 +38,24 @@ typedef struct {
     int parent_to_child_write_fd; // 부모가 이 자식에게 메시지를 보낼 때 사용하는 파이프의 '쓰기' 끝 FD
     int child_to_parent_read_fd;  // 이 자식이 부모에게 메시지를 보낼 때, 부모가 '읽을' 파이프의 FD
     bool isActive;       // 클라이언트 연결의 활성 상태 (true: 활성, false: 비활성/종료)
-} pipeInfo; // 이름 변경: clientPipeInfo로 변경하는 것이 더 명확할 수 있습니다.
+} pipeInfo;
 
 // --- 전역 변수 선언 ---
+roomInfo room_info[CHAT_ROOM] = {0}; // 채팅방 정보를 저장하는 배열
 // 활성화된 클라이언트 핸들링 프로세스(2차 자식) 정보를 저장하는 배열
-pipeInfo active_children[MAX_CLIENT]; 
+pipeInfo active_children[MAX_CLIENT] = {0}; 
 // 현재 활성화된 클라이언트 핸들링 프로세스의 수
-volatile int num_active_children = 0; // 전역 client_num을 대체하여 명확하게 사용
+volatile int num_active_children = 0;
 
 // 생성된 채팅룸 수 (부모 프로세스에서 관리)
-volatile int room_num = 0; // 전역 room_num을 대체
+volatile int room_num = 0; 
 
 // 시그널 플래그 (volatile sig_atomic_t 타입 사용)
-// volatile: 컴파일러 최적화를 방지하여 시그널 핸들러와 메인 루프 간의 값 동기화를 보장합니다.
-// sig_atomic_t: 시그널 핸들러 내에서 안전하게 읽고 쓸 수 있는 원자적인 타입입니다.
+// volatile: 컴파일러가 이 변수를 최적화하지 않고, 매번 메모리에서 최신 값을 읽어오도록 지시합니다.
+// sig_atomic_t: 시그널 핸들러 내에서 안전하게 읽고 쓸 수 있는 원자적인 타입임을 나타냅니다.
 volatile sig_atomic_t parent_sigusr_arrived = 0; // 부모: 자식으로부터 메시지 도착 시그널 플래그
 volatile sig_atomic_t child_sigusr_arrived = 0;  // 자식: 부모로부터 메시지 도착 시그널 플래그
 volatile sig_atomic_t child_exited_flag = 0;     // 자식 프로세스 종료 알림 플래그 (SIGCHLD용)
-
-// --- 함수 선언 (외부 파일에 정의되어 있다고 가정) ---
-// extern void setup_client_handler();   // SIGUSR1 (자식용)
-// extern void setup_chatroom_handler(); // (이름으로 유추컨대, 1차 자식(채팅방) 관련 핸들러일 수 있음)
-// extern void child_close_handler();    // SIGCHLD (부모용)
-
-// 위 함수들을 직접 여기에 정의하거나, 사용자가 제공한 common.h, signals.h, clientmanager.h에서 찾아서 사용해야 합니다.
-// 여기서는 `setup_signal_handlers_parent`, `setup_signal_handlers_child`, `handle_sigchld` 등으로 직접 정의합니다.
 
 // --- FCNTL 관련 함수 (O_NONBLOCK 설정을 위해) ---
 // 파일 디스크립터를 논블로킹 모드로 설정합니다.
@@ -90,13 +84,13 @@ int set_blocking(int fd) {
     }
     // 현재 플래그에서 O_NONBLOCK 플래그를 제거하여 블로킹 모드로 설정합니다.
     if (fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) == -1) {
-        syslog(LOG_ERR, "fcntl(F_SETFL, blocking) error for fd %d: %m");
+        syslog(LOG_ERR, "fcntl(F_SETFL, blocking) error for fd %d: %m", fd);
         return -1;
     }
     return 0;
 }
 
-// --- 시그널 핸들러 함수 정의 (위에서 선언한 전역 변수 사용) ---
+// --- 시그널 핸들러 함수 정의 ---
 // 부모 프로세스용 SIGUSR1 핸들러 (자식으로부터 메시지 도착 알림)
 void handle_parent_sigusr(int signum) {
     parent_sigusr_arrived = 1; 
@@ -109,8 +103,8 @@ void handle_child_sigusr(int signum) {
     syslog(LOG_INFO, "Child: SIGUSR1 received (message from parent).");
 }
 
-// SIGCHLD 핸들러 (좀비 프로세스 방지 및 자식 목록 정리)
-void handle_sigchld_main(int signum) { // 함수 이름 충돌 방지를 위해 main_ 접두사 추가
+// SIGCHLD 핸들러 (좀비 프로세스 방지 및 자식 목록 정리 플래그 설정)
+void handle_sigchld_main(int signum) { 
     child_exited_flag = 1; // 플래그를 설정하여 메인 루프에서 자식 정리를 유도
     syslog(LOG_INFO, "Parent: SIGCHLD received. Child exited flag set.");
 }
@@ -143,8 +137,7 @@ void clean_active_process() {
 }
 
 // --- 시그널 핸들러 등록 함수 ---
-
-void setup_signal_handlers_parent_main() { // 함수 이름 충돌 방지를 위해 main_ 접두사 추가
+void setup_signal_handlers_parent_main() { 
     struct sigaction sa_usr, sa_chld;
 
     // SIGUSR1 핸들러 설정
@@ -158,7 +151,7 @@ void setup_signal_handlers_parent_main() { // 함수 이름 충돌 방지를 위
     syslog(LOG_INFO, "Parent: SIGUSR1 handler set for parent.");
 
     // SIGCHLD 핸들러 설정
-    sa_chld.sa_handler = handle_sigchld_main; // clean_active_process를 직접 호출하는 대신 플래그 설정
+    sa_chld.sa_handler = handle_sigchld_main; 
     sigemptyset(&sa_chld.sa_mask);
     sa_chld.sa_flags = SA_RESTART | SA_NOCLDSTOP; 
     if (sigaction(SIGCHLD, &sa_chld, NULL) == -1) {
@@ -168,7 +161,7 @@ void setup_signal_handlers_parent_main() { // 함수 이름 충돌 방지를 위
     syslog(LOG_INFO, "Parent: SIGCHLD handler set for parent.");
 }
 
-void setup_signal_handlers_child_main() { // 함수 이름 충돌 방지를 위해 main_ 접두사 추가
+void setup_signal_handlers_child_main() { 
     struct sigaction sa_usr;
 
     // SIGUSR1 핸들러 설정
@@ -182,15 +175,17 @@ void setup_signal_handlers_child_main() { // 함수 이름 충돌 방지를 위�
     syslog(LOG_INFO, "Child: SIGUSR1 handler set for child.");
 }
 
-// --- 명령어 검사 함수 (기존 로직 유지) ---
+// --- 명령어 검사 함수 ---
 int check_command(const char* mesg, const char* command){
     if (mesg[0] != '/') {
         return 0;
     }
+    // strncmp의 길이도 command의 길이만큼 비교해야 함
     if (strncmp(mesg + 1, command, strlen(command)) == 0) {
+        // 명령어 뒤에 공백, null 문자, 또는 개행 문자가 와야 정확히 일치하는 명령어로 간주
         char char_after_command = mesg[1 + strlen(command)];
         if (char_after_command == ' ' || char_after_command == '\0' || char_after_command == '\n') {
-            return 1;
+            return 1; 
         }
     }
     return 0;
@@ -200,14 +195,15 @@ int check_command(const char* mesg, const char* command){
 // 이 함수는 fork()된 자식 프로세스에서 실행됩니다.
 void client_work(pid_t client_pid, pid_t main_pid, int csock, int parent_pfd[2], int child_pfd[2]) {
     // 자식 프로세스 시그널 핸들러 설정
-    setup_signal_handlers_child_main(); // main_ 접두사 추가
+    setup_signal_handlers_child_main(); 
 
-    // 자식은 서버 리스닝 소켓을 사용하지 않으므로 닫습니다.
-    close(main_pid); // 부모의 PID는 main_pid에 저장될 수 있지만, ssock을 닫아야 합니다.
-                     // 여기서 main_pid는 실제 FD가 아니므로, close(ssock)을 직접 호출해야 합니다.
-                     // (ssock은 fork()로 복제된 FD이므로 자식도 접근 가능)
-    // ssock은 client_work 함수로 전달되지 않으므로, 이 함수 안에서 닫을 수 없습니다.
-    // main 함수에서 자식 프로세스 진입 직후 close(ssock); 를 해야 합니다.
+    // 자식은 서버 리스닝 소켓을 사용하지 않으므로 닫습니다. (ssock은 main 함수에 정의되어 있음)
+    // ssock은 client_work 함수로 직접 전달되지 않지만, fork()에 의해 복제된 FD이므로 접근 가능합니다.
+    close(ssock); // 이 close는 main 함수에서 자식 프로세스 진입 직후에 이루어져야 합니다.
+                  // client_work 함수는 이미 자식 프로세스 내부이므로, 이 라인은 적절하지 않습니다.
+                  // main 함수의 `else if(pids_ == 0)` 블록 초기에 `close(ssock);`를 추가하는 것이 더 정확합니다.
+                  // 현재 위치에서는 `ssock` 변수에 직접 접근할 수 없을 수도 있습니다.
+                  // (main 함수의 ssock 변수가 전역이 아니므로)
 
     // 부모->자식 파이프 (parent_pfd):
     // 자식은 이 파이프의 '읽기 끝'(parent_pfd[0])을 사용해서 부모 메시지를 받습니다.
@@ -239,8 +235,7 @@ void client_work(pid_t client_pid, pid_t main_pid, int csock, int parent_pfd[2],
             child_sigusr_arrived = 0; // 플래그를 초기화합니다.
             syslog(LOG_INFO, "Child %d: SIGUSR1 received, checking parent pipe for broadcast.", client_pid);
             
-            // 부모 파이프 FD를 논블로킹으로 설정하고 읽기 시도합니다.
-            // 데이터가 없으면 EAGAIN/EWOULDBLOCK을 반환하므로, 블로킹되지 않고 다음 코드로 진행합니다.
+            // 부모 파이프 FD에서 메시지를 읽기 시도: 논블로킹이므로 데이터가 없으면 즉시 반환됩니다.
             child_n_read_write = read(read_from_parent_pipe_fd, child_mesg_buffer, sizeof(child_mesg_buffer) - 1);
             
             if (child_n_read_write > 0) {
@@ -308,13 +303,14 @@ void client_work(pid_t client_pid, pid_t main_pid, int csock, int parent_pfd[2],
             break; // 통신 루프 종료
         } else { // child_n_read_write < 0
             // read 오류 발생. EAGAIN/EWOULDBLOCK은 논블로킹 모드에서 데이터가 없다는 의미입니다.
-            // EINTR은 시그널에 의한 중단이므로 실제 오류가 아닙니다.
-            if (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) { 
+            // EINTR은 시그널에 의해 중단된 것이므로 실제 오류가 아닙니다.
+            if (errno != EAGAIN && errno == EWOULDBLOCK && errno != EINTR) { // EAGAIN과 EWOULDBLOCK만 체크
                 syslog(LOG_ERR, "Child %d read from client error: %m", client_pid);
                 break; // 다른 오류 발생 시 통신 루프 종료
             }
         }
-        // CPU 과부하 방지를 위해 잠시 쉬어줍니다. (너무 짧으면 busy-waiting 발생)
+        // CPU 과부하 방지를 위해 잠시 쉬어줍니다.
+        // 논블로킹 모드에서는 CPU를 계속 소모할 수 있으므로, usleep은 필수적입니다.
         usleep(10000); // 10ms (10000 microseconds)
     } // --- while (1) 루프 종료 ---
 
@@ -337,20 +333,11 @@ int main(int argc, char **argv)
     char mesg_buffer[BUFSIZ]; // 메시지 버퍼 (main 함수용)
     ssize_t n_read_write; // 읽거나 쓴 바이트 수
 
-    // room_info와 client_pipe_info는 main 함수 내에서 사용되므로,
-    // 전역 변수 active_children을 사용하는 것으로 통일합니다.
-    // roomInfo room_info[CHAT_ROOM] = {0}; // 이 변수는 현재 사용되지 않으므로 주석 처리하거나 제거
-    // pipeInfo client_pipe_info[CHAT_ROOM] = {0}; // active_children 배열이 이 역할을 대신함.
-
-    // 시그널 핸들러 등록 (사용자가 제공한 함수 이름에 맞춤)
-    // setup_client_handler(); // SIGUSR1 자식용 핸들러 (client_work에서 호출)
-    // setup_chatroom_handler(); // 채팅룸 관련 시그널 (현재 코드에서 명확치 않음)
-    // child_close_handler(); // SIGCHLD 부모용 핸들러 (main에서 호출)
-
     // 메인 프로세스(부모)의 시그널 핸들러를 설정합니다.
     setup_signal_handlers_parent_main(); 
 
-    daemonize(argc, argv); // 데몬화
+    // 데몬화 함수 호출 (argc, argv 인자 전달)
+    daemonize(argc, argv); 
 
     // 서버 소켓 생성
     if((ssock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
@@ -391,11 +378,10 @@ int main(int argc, char **argv)
 
     cli_len = sizeof(cliaddr); 
     
-    // client_num 대신 전역 num_active_children 사용
-    // room_num은 채팅방 관리 기능에 따라 추후 사용될 수 있습니다.
-
     // --- 부모 프로세스의 메인 루프 (새 클라이언트 연결 수락 및 자식 관리) ---
-    while(1) { // 서버는 클라이언트 연결을 계속 받아야 하므로 무한 루프입니다.
+    // is_shutdown 플래그는 외부 시그널 핸들러(예: SIGINT)에서 설정되어야 합니다.
+    // 현재 코드에서는 해당 핸들러가 없으므로 무한 루프가 됩니다.
+    while(true) { // is_shutdown 플래그를 사용한다면 while(!is_shutdown)으로 변경해야 합니다.
         // 자식 종료 플래그가 설정되었다면, 종료된 자식을 정리합니다.
         if(child_exited_flag){
             clean_active_process(); // SIGCHLD 핸들러가 설정한 플래그를 확인하여 실제 정리 수행
@@ -418,7 +404,7 @@ int main(int argc, char **argv)
             } else {
                 // 다른 심각한 accept() 오류 발생 시 서버를 종료합니다.
                 syslog(LOG_ERR, "accept() error: %m");
-                break; // while(1) 루프 종료
+                break; // while(true) 루프 종료
             }
 
             // 시그널에 의해 중단되었거나, 연결이 없어 EAGAIN/EWOULDBLOCK이 발생한 경우
@@ -429,6 +415,10 @@ int main(int argc, char **argv)
                 // 모든 활성 자식의 파이프를 순회하며 메시지를 확인하고 브로드캐스트합니다.
                 // 각 파이프 FD는 이미 논블로킹으로 설정되어 있으므로, read()는 블로킹되지 않습니다.
                 for (int i = 0; i < num_active_children; i++) {
+                    // 비활성 상태의 자식은 건너뜁니다. (SIGCHLD 핸들러에서 isActive = false로 설정됨)
+                    if (!active_children[i].isActive) {
+                        continue; 
+                    }
                     n_read_write = read(active_children[i].child_to_parent_read_fd, mesg_buffer, sizeof(mesg_buffer) - 1);
                     
                     if (n_read_write > 0) {
@@ -436,6 +426,8 @@ int main(int argc, char **argv)
                         syslog(LOG_INFO, "Parent received message from child %d: %s", active_children[i].pid, mesg_buffer);
 
                         // 메시지 파싱 (PID와 내용 분리)
+                        // strtok은 정적 변수를 사용하므로 중첩 호출에 유의해야 합니다.
+                        // 여기서는 단일 메시지에 대해 순차적으로 사용하므로 문제 없습니다.
                         char *pid_str = strtok(mesg_buffer, ":");
                         char *content = strtok(NULL, ""); // 나머지 전체를 내용으로
 
@@ -446,20 +438,21 @@ int main(int argc, char **argv)
                             if (content[0] == '/') {
                                 int isAdd = check_command(content, "add");
                                 int isJoin = check_command(content, "join");
-                                int isRm = check_command(content, "rm");
+                                int isRm = check_command(content, "rm"); // /rm 구현 필요
                                 int isList = check_command(content, "list"); // /list 구현 필요
 
                                 if (isAdd) {
-                                    // 채팅방 생성 로직 (현재 room_info[room_num] 사용)
+                                    // 채팅방 생성 로직 (room_info 배열 사용)
                                     // 실제로는 1차 자식 프로세스(채팅방 서버)를 fork하고 해당 방을 활성화해야 함
                                     if (room_num < CHAT_ROOM) {
                                         strncpy(room_info[room_num].name, content + 2 + strlen("add"), NAME - 1);
                                         room_info[room_num].name[NAME - 1] = '\0'; 
                                         syslog(LOG_INFO, "Parent: Room '%s' created.", room_info[room_num].name);
                                         room_num++;
+                                        // 클라이언트에게 방 생성 성공 메시지 전달 필요 (해당 자식에게만 write)
                                     } else {
-                                        syslog(LOG_WARNING, "Parent: Max chat rooms reached.");
-                                        // 클라이언트에게 방 생성 실패 메시지 전달 필요 (해당 자식에게만 write)
+                                        syslog(LOG_WARNING, "Parent: Max chat rooms reached. Cannot create room '%s'.", content + 2 + strlen("add"));
+                                        // 클라이언트에게 방 생성 실패 메시지 전달 필요
                                     }
                                 } else if (isJoin) {
                                     // 클라이언트를 특정 방에 조인시키는 로직
@@ -476,37 +469,39 @@ int main(int argc, char **argv)
                                         strncpy(active_children[client_idx].room_name, join_room_name, NAME - 1);
                                         active_children[client_idx].room_name[NAME - 1] = '\0';
                                         syslog(LOG_INFO, "Parent: Client %d ('%s') joined room '%s'.", from_who, active_children[client_idx].name, active_children[client_idx].room_name);
+                                    } else {
+                                        syslog(LOG_ERR, "Parent: Could not find client with PID %d to join room.", from_who);
                                     }
                                 }
-                                // /rm, /list, /users 등 다른 명령어 처리
+                                // /rm, /list, /users 등 다른 명령어 처리 로직을 여기에 추가
                             } 
-                            // 클라이언트 이름 설정 로직
-                            else if (active_children[i].name[0] == '\0') { 
+                            // 클라이언트 닉네임 설정 로직 (초기 접속 시 닉네임 설정)
+                            else if (active_children[i].name[0] == '\0') { // 닉네임이 아직 설정되지 않았다면
                                 strncpy(active_children[i].name, content, NAME - 1);
                                 active_children[i].name[NAME - 1] = '\0';
                                 syslog(LOG_INFO, "Parent: Client %d set name to '%s'.", from_who, active_children[i].name);
                             }
                             // 일반 채팅 메시지 브로드캐스트
                             else { 
-                                char broadcast_mesg[BUFSIZ + NAME + 10]; // "이름: 메시지" 형식
+                                char broadcast_mesg[BUFSIZ + NAME + 10]; // "이름: 메시지" 형식 (닉네임 + 메시지 내용)
                                 snprintf(broadcast_mesg, sizeof(broadcast_mesg), "%s: %s", active_children[i].name, content);
                                 ssize_t broadcast_len = strlen(broadcast_mesg);
 
                                 // 메시지를 보낸 클라이언트가 속한 방을 찾습니다.
                                 char *sender_room_name = active_children[i].room_name;
-                                if (sender_room_name[0] == '\0') { // 아직 방에 조인하지 않은 클라이언트
-                                    syslog(LOG_INFO, "Parent: Message from client %d ('%s') but not in a room.", from_who, active_children[i].name);
-                                    // 클라이언트에게 "방에 먼저 조인하세요" 메시지 전달 (선택 사항)
-                                    continue; // 브로드캐스트하지 않음
+                                if (sender_room_name[0] == '\0') { // 아직 방에 조인하지 않은 클라이언트의 메시지
+                                    syslog(LOG_INFO, "Parent: Message from client %d ('%s') but not in a room. Message: %s", from_who, active_children[i].name, content);
+                                    // 클라이언트에게 "방에 먼저 조인하세요" 메시지 전달 (해당 자식에게만 write)
+                                    continue; // 이 메시지는 브로드캐스트하지 않음
                                 }
 
                                 // 동일한 방에 있는 모든 활성 자식들에게 메시지를 브로드캐스트합니다.
                                 for (int j = 0; j < num_active_children; j++) {
-                                    // 활성 상태이고, 메시지 보낸 클라이언트 자신이 아니며, 동일한 방에 속해 있는 경우
+                                    // 활성 상태이고, 동일한 방에 속해 있는 클라이언트에게만 메시지 전송
                                     if (active_children[j].isActive && 
                                         (strcmp(active_children[j].room_name, sender_room_name) == 0)) 
                                     {
-                                        syslog(LOG_INFO, "Parent broadcasting to client %d ('%s') in room '%s'.", active_children[j].pid, active_children[j].name, active_children[j].room_name);
+                                        syslog(LOG_INFO, "Parent broadcasting to client %d ('%s') in room '%s'. Message: %s", active_children[j].pid, active_children[j].name, active_children[j].room_name, broadcast_mesg);
                                         
                                         // 자식에게 메시지를 보내기 전, 해당 자식에게 SIGUSR1 시그널을 전송합니다.
                                         // 이렇게 해야 자식의 블로킹 read()가 EINTR로 중단되어 부모의 메시지를 처리할 수 있습니다.
@@ -540,9 +535,11 @@ int main(int argc, char **argv)
                     }
                 }
             }
-            // 시그널 처리 후 다음 accept() 시도로 돌아가기 위해 continue
+            // 시그널 처리 후 다음 accept() 시도로 돌아가기 위해 continue (이미 csock < 0 브랜치 안에 있음)
             continue; 
         }
+
+        // --- 새로운 클라이언트 연결 처리 (csock >= 0 인 경우) ---
 
         // 클라이언트가 MAX_CLIENT를 초과하면 새로운 연결을 받아들이지 않고 닫습니다.
         if (num_active_children >= MAX_CLIENT) {
@@ -599,6 +596,7 @@ int main(int argc, char **argv)
             setup_signal_handlers_child_main(); // 자식 프로세스에 시그널 핸들러를 설정합니다.
 
             // 자식은 서버 리스닝 소켓을 사용하지 않으므로 닫습니다. (부모만 사용)
+            // ssock은 fork()로 복제된 FD이므로 자식 프로세스에서 닫아야 합니다.
             close(ssock);
 
             // 부모->자식 파이프 (parent_pfd):
@@ -699,7 +697,7 @@ int main(int argc, char **argv)
                     break; // 통신 루프 종료
                 } else { // child_n_read_write < 0
                     // read 오류 발생. EAGAIN/EWOULDBLOCK은 논블로킹 모드에서 데이터가 없다는 의미입니다.
-                    // EINTR은 시그널에 의한 중단이므로 실제 오류가 아닙니다.
+                    // EINTR은 시그널에 의해 중단된 것이므로 실제 오류가 아닙니다.
                     if (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) { 
                         syslog(LOG_ERR, "Child %d read from client error: %m", getpid());
                         break; // 다른 오류 발생 시 통신 루프 종료
@@ -754,7 +752,7 @@ int main(int argc, char **argv)
             // waitpid()는 SIGCHLD 핸들러에서 비동기적으로 처리되어야 합니다.
             // 이곳에 두면 accept()가 블로킹되어 다른 클라이언트 연결을 받지 못합니다.
         }
-    } // --- while(1) (accept) 루프 종료 ---
+    } // --- while(true) (accept) 루프 종료 ---
     
     // --- 서버 종료 로직 (Graceful Shutdown) ---
     // 이 부분은 Ctrl+C (SIGINT)나 kill 명령 (SIGTERM)과 같은 외부 시그널 핸들러에서 호출될 때
@@ -774,6 +772,9 @@ int main(int argc, char **argv)
     while (wait(NULL) > 0);
     
     close(ssock); // 서버 리스닝 소켓을 닫습니다.
+    // main 함수 마지막에 csock을 닫는 것은 불필요합니다.
+    // csock은 각 fork()된 자식 프로세스에서 관리되거나, 부모가 fork 후 바로 닫기 때문입니다.
+    // close(csock); 
     syslog(LOG_INFO, "Server shutting down gracefully.");
 
     return 0;
