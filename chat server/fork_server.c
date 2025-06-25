@@ -55,6 +55,10 @@ int main(int argc, char **argv)
         syslog(LOG_ERR,"Cannot listen");
         exit(1);
     }
+    if(set_nonblocking(ssock) == -1){
+        syslog(LOG_ERR,"cannot nonblocking server socket");
+        exit(1);
+    }
 
     //clen이 클라이언트 주소 정보를 받을 cliaddr라는 
     //"버퍼"의 크기를 accept() 함수에 알려주는 역할
@@ -72,6 +76,18 @@ int main(int argc, char **argv)
         //클라이언트 연결 감지중 
         int csock = accept(ssock,(struct sockaddr *)&cliaddr,&cli_len);
         //set_nonblocking(csock);
+        if(csock < 0){
+            if(errno == EINTR){
+                continue;
+            }
+            else if(errno == EAGAIN || errno == EWOULDBLOCK){
+                usleep(100000);
+                continue;
+            }
+            syslog(LOG_ERR, "accept error: errno=%d (%s)", errno, strerror(errno));
+            break;
+        }
+        
         ssize_t n,client_n; 
         //파이프 관련 초기화 
         pid_t pids_; //부모 자식 구분자
@@ -96,10 +112,22 @@ int main(int argc, char **argv)
         }
 
         // 논블로킹 설정 (양쪽 다 가능)
-        set_nonblocking(parent_pfd[0]); // read end
-        set_nonblocking(parent_pfd[1]); // write end
-        set_nonblocking(child_pfd[0]); // read end
-        set_nonblocking(child_pfd[1]); // write end
+        if(set_nonblocking(parent_pfd[0])==-1){
+            syslog(LOG_ERR,"cannot nonblocking server socket");
+            exit(1);
+        } // read end
+        if(set_nonblocking(parent_pfd[1])){
+            syslog(LOG_ERR,"cannot nonblocking server socket");
+            exit(1);
+        } // write end
+        if(set_nonblocking(child_pfd[0])){
+            syslog(LOG_ERR,"cannot nonblocking server socket");
+            exit(1);
+        } // read end
+        if(set_nonblocking(child_pfd[1])){
+            syslog(LOG_ERR,"cannot nonblocking server socket");
+            exit(1);
+        } // write end
         //클라이언트 서버 프로세스 생성 
         if((pids_ = fork())<0){
             syslog(LOG_ERR,"NO FORK!!");
