@@ -14,10 +14,7 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
 
         n = recv(client_sock_fd, mesg, BUFSIZ-1, 0);
         //클라이언트에서 메시지를 받는다
-        if( n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)){
-            continue;
-        }
-        else if(n > 0){
+        if(n > 0){
             char add_mesg[BUFSIZ];
             mesg[n] = '\0';
             syslog(LOG_INFO,"Received Client data : %s",mesg);
@@ -31,7 +28,7 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
                 syslog(LOG_INFO, "client_to_main_pipe_fds[1] is valid. Flags: %d", flags);
             }
             ////test
-            
+
             ssize_t wlen = write(client_to_main_pipe_fds[1], add_mesg, strlen(add_mesg)+1);
             syslog(LOG_INFO,"Received Client data : %s",add_mesg);
             if(wlen <= 0) //클라이언트에게 받은걸 부모에게 쓴다.
@@ -42,8 +39,8 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
             }
         } else if (n == -1 || (errno == EAGAIN || errno == EWOULDBLOCK)) {
             // 데이터가 아직 없음 (논블로킹 모드)
-            syslog(LOG_ERR, "Error reading client message");
-            usleep(50 * 1000);
+            //syslog(LOG_ERR, "Error reading client message");
+            usleep(50000);
             continue;
         }
         else{
