@@ -34,7 +34,7 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
                 kill(main_server_pid,SIG_FROM_CLIENT);
                 syslog(LOG_INFO,"after Write data to Main : %s",mesg);
             }
-        } else if (n == -1 || (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        } else if (n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             // 데이터가 아직 없음 (논블로킹 모드)
             //syslog(LOG_ERR, "Error reading client message");
             usleep(50000);
@@ -53,8 +53,8 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
         else if(client_n > 0){
             mesg[client_n] = '\0';
             syslog(LOG_INFO,"Received Chatroom data : %s",mesg);
-            if(write(main_to_client_pipe_fds[1],mesg,client_n) <= 0) //부모의 메시지를
-                syslog(LOG_ERR,"cannot Write to client");
+            // if(write(main_to_client_pipe_fds[1],mesg,client_n) <= 0) //부모의 메시지를
+            //     syslog(LOG_ERR,"cannot Write to client");
             
         } else{
             syslog(LOG_ERR,"cannot read SERVER message");
