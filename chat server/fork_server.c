@@ -150,7 +150,14 @@ int main(int argc, char **argv)
             is_write_from_client = 0;
             int n;
             char mesg[BUFSIZ];
-            
+            /////test
+            int flags = fcntl(child_pfd[0], F_GETFL);
+            if (flags == -1) {
+                syslog(LOG_ERR, "child_pfd[1] is invalid: errno=%d (%s)", errno, strerror(errno));
+            } else {
+                syslog(LOG_INFO, "child_pfd[1] is valid. Flags: %d", flags);
+            }
+            ////test
             if((n=read(child_pfd[0],mesg,BUFSIZ)) <= 0){
                 syslog(LOG_ERR,"cannot read child message");
             }
@@ -223,11 +230,7 @@ int main(int argc, char **argv)
         }
             
     }while(!is_shutdown);
-    // //열어놓은 파이프 닫기
-    // close(parent_pfd[1]);
-    // close(child_pfd[0]);
-    // close(parent_pfd[0]);
-    // close(child_pfd[1]);
+    
     close(ssock);
     close(csock);
     return 0;

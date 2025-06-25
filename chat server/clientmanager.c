@@ -63,6 +63,6 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
     }
     close(client_sock_fd); //할일 다 했으니까 종료
     //열어놓은 파이프 닫기
-    //close(main_to_client_pipe_fds[0]);
-    //close(client_to_main_pipe_fds[1]); 
+    close(main_to_client_pipe_fds[0]);
+    close(client_to_main_pipe_fds[1]); 
 }
