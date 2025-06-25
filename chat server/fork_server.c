@@ -119,7 +119,7 @@ int main(int argc, char **argv)
             client_work(client_pid,main_pid,csock,parent_pfd,child_pfd);
         }
         else if(pids_>0){ //부모 : 자식이 보낸걸 읽고 
-            //close(csock); // 부모는 클라이언트 소켓을 쓰지 않으니까
+            close(csock); // 부모는 클라이언트 소켓을 쓰지 않으니까
             //부모는 parent_pfd[1]에 쓰고, 자식은 parent_pfd[0]에서 읽음
             //부모는 써야 하니까 반대를 닫는다
             close(parent_pfd[0]); 
