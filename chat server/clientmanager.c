@@ -14,16 +14,16 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
         if(n > 0){
             char add_mesg[BUFSIZ];
             mesg[n] = '\0';
-            syslog(LOG_INFO,"Received Client data : %s",mesg);
+            //syslog(LOG_INFO,"Received Client data : %s",mesg);
             snprintf(add_mesg, BUFSIZ, "%d:%s", client_server_pid, mesg);
 
             /////test
-            int flags = fcntl(client_to_main_pipe_fds[1], F_GETFL);
-            if (flags == -1) {
-                syslog(LOG_ERR, "client_to_main_pipe_fds[1] is invalid: errno=%d (%s)", errno, strerror(errno));
-            } else {
-                syslog(LOG_INFO, "client_to_main_pipe_fds[1] is valid. Flags: %d", flags);
-            }
+            // int flags = fcntl(client_to_main_pipe_fds[1], F_GETFL);
+            // if (flags == -1) {
+            //     syslog(LOG_ERR, "client_to_main_pipe_fds[1] is invalid: errno=%d (%s)", errno, strerror(errno));
+            // } else {
+            //     syslog(LOG_INFO, "client_to_main_pipe_fds[1] is valid. Flags: %d", flags);
+            // }
             ////test
 
             ssize_t wlen = write(client_to_main_pipe_fds[1], add_mesg, strlen(add_mesg)+1);
@@ -63,6 +63,6 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
     }
     close(client_sock_fd); //할일 다 했으니까 종료
     //열어놓은 파이프 닫기
-    close(main_to_client_pipe_fds[0]);
-    close(client_to_main_pipe_fds[1]); 
+    //close(main_to_client_pipe_fds[0]);
+    //close(client_to_main_pipe_fds[1]); 
 }
