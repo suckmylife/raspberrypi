@@ -213,7 +213,7 @@ void client_work(pid_t client_pid, pid_t main_pid, int csock, int parent_pfd[2],
                 set_nonblocking(client_socket_fd);
                 if (write(client_socket_fd, child_mesg_buffer, child_n_read_write) <= 0) {
                     if (errno != EAGAIN && errno != EWOULDBLOCK) {
-                        syslog(LOG_ERR, "Child %d failed to write to client (broadcast): %m", client_pid);
+                        //syslog(LOG_ERR, "Child %d failed to write to client (broadcast): %m", client_pid);
                         break; // 쓰기 오류 시 통신 루프 종료
                     }
                 }
@@ -226,7 +226,7 @@ void client_work(pid_t client_pid, pid_t main_pid, int csock, int parent_pfd[2],
                 // read 오류 발생. EAGAIN/EWOULDBLOCK은 논블로킹 모드에서 데이터가 없다는 의미입니다.
                 // EINTR은 시그널에 의해 중단된 것이므로 실제 오류가 아닙니다.
                 if (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) { 
-                    syslog(LOG_ERR, "Child %d read from parent pipe error: %m", client_pid);
+                    //syslog(LOG_ERR, "Child %d read from parent pipe error: %m", client_pid);
                     break; // 다른 오류 발생 시 통신 루프 종료
                 }
             }
@@ -258,7 +258,7 @@ void client_work(pid_t client_pid, pid_t main_pid, int csock, int parent_pfd[2],
             set_nonblocking(write_to_parent_pipe_fd);
             if (write(write_to_parent_pipe_fd, formatted_mesg, formatted_len + 1) <= 0) { // NULL 종료 문자 포함
                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
-                    syslog(LOG_ERR, "Child %d failed to write to parent pipe: %m", client_pid);
+                    //syslog(LOG_ERR, "Child %d failed to write to parent pipe: %m", client_pid);
                     break; // 쓰기 오류 시 통신 루프 종료
                 }
             }
@@ -271,7 +271,7 @@ void client_work(pid_t client_pid, pid_t main_pid, int csock, int parent_pfd[2],
             // read 오류 발생. EAGAIN/EWOULDBLOCK은 논블로킹 모드에서 데이터가 없다는 의미입니다.
             // EINTR은 시그널에 의해 중단된 것이므로 실제 오류가 아닙니다.
             if (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) { 
-                syslog(LOG_ERR, "Child %d read from client error: %m", client_pid);
+                //syslog(LOG_ERR, "Child %d read from client error: %m", client_pid);
                 break; // 다른 오류 발생 시 통신 루프 종료
             }
         }
@@ -363,7 +363,7 @@ int main(int argc, char **argv)
             } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 // 논블로킹 모드에서 현재 대기 중인 연결이 없는 경우
                 usleep(10000); 
-                syslog(LOG_INFO, "Parent: No pending connections, accept() returned EAGAIN/EWOULDBLOCK.");
+                //syslog(LOG_INFO, "Parent: No pending connections, accept() returned EAGAIN/EWOULDBLOCK.");
             } else {
                 syslog(LOG_ERR, "accept() error: %m");
                 break; 
@@ -450,7 +450,7 @@ int main(int argc, char **argv)
                                         } else {
                                             if (write(active_children[j].parent_to_child_write_fd, broadcast_mesg, broadcast_len + 1) <= 0) { 
                                                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
-                                                     syslog(LOG_ERR, "Parent failed to broadcast to child %d: %m", active_children[j].pid);
+                                                     //syslog(LOG_ERR, "Parent failed to broadcast to child %d: %m", active_children[j].pid);
                                                 }
                                             }
                                         }
@@ -464,7 +464,7 @@ int main(int argc, char **argv)
                         syslog(LOG_INFO, "Parent: Child %d pipe closed (detected during read scan).", active_children[i].pid);
                     } else { 
                         if (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) { 
-                            syslog(LOG_ERR, "Parent read from child %d pipe error: %m", active_children[i].pid);
+                            //syslog(LOG_ERR, "Parent read from child %d pipe error: %m", active_children[i].pid);
                         }
                     }
                 }
