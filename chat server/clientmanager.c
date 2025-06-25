@@ -53,7 +53,7 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
         else if(client_n > 0){
             mesg[client_n] = '\0';
             syslog(LOG_INFO,"Received Chatroom data : %s",mesg);
-            if(write(client_sock_fd,mesg,n) <= 0) //부모의 메시지를
+            if(write(main_to_client_pipe_fds[1],mesg,client_n) <= 0) //부모의 메시지를
                 syslog(LOG_ERR,"cannot Write to client");
             
         } else{

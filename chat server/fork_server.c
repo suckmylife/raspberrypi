@@ -219,6 +219,9 @@ int main(int argc, char **argv)
                 }
                 
             }
+            //열어놓은 파이프 닫기
+            close(parent_pfd[1]);
+            close(child_pfd[0]); 
         }
             
     }while(!is_shutdown);
