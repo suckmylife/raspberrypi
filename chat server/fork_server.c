@@ -223,11 +223,11 @@ int main(int argc, char **argv)
         }
             
     }while(!is_shutdown);
-    //열어놓은 파이프 닫기
-    close(parent_pfd[1]);
-    close(child_pfd[0]);
-    close(parent_pfd[0]);
-    close(child_pfd[1]);
+    // //열어놓은 파이프 닫기
+    // close(parent_pfd[1]);
+    // close(child_pfd[0]);
+    // close(parent_pfd[0]);
+    // close(child_pfd[1]);
     close(ssock);
     close(csock);
     return 0;
