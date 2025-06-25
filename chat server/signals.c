@@ -125,3 +125,16 @@ int set_nonblocking(int fd) {
     return 0;
 }
 
+int set_blocking(int fd) {
+    int flags = fcntl(fd, F_GETFL, 0); 
+    if (flags == -1) {
+        syslog(LOG_ERR, "fcntl(F_GETFL) error for fd %d: %m", fd);
+        return -1;
+    }
+    if (fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) == -1) {
+        syslog(LOG_ERR, "fcntl(F_SETFL, blocking) error for fd %d: %m", fd);
+        return -1;
+    }
+    return 0;
+}
+

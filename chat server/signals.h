@@ -35,6 +35,7 @@ void setup_client_handler();   //클라이언트서버 신호 핸들러 설정
 void clean_active_process();
 
 int set_nonblocking(int fd);
+int set_blocking(int fd);
 
 
 #endif // SIGNAL_H
