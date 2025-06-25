@@ -139,8 +139,6 @@ int main(int argc, char **argv)
                 syslog(LOG_ERR,"Index out of client number");
                 exit(1);
             }
-            
-            client_num++;
             //close(ssock);
             //열어놓은 파이프 닫기
             //close(parent_pfd[1]);
@@ -224,7 +222,7 @@ int main(int argc, char **argv)
         }
             
     }while(!is_shutdown);
-
+    
     close(ssock);
     close(csock);
     return 0;

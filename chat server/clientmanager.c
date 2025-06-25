@@ -4,13 +4,10 @@ void client_work(pid_t client_server_pid,pid_t main_server_pid, int client_sock_
 {
     char mesg[BUFSIZ]; //메시지 읽는거
     ssize_t n,client_n;
-    
+    close(main_to_client_pipe_fds[1]);
+    close(client_to_main_pipe_fds[0]);
     while(!is_shutdown)
     {
-        //열어놓은 파이프 닫기
-        close(main_to_client_pipe_fds[1]);
-        close(client_to_main_pipe_fds[0]); 
-        //set_nonblocking(client_to_main_pipe_fds[1]);
 
         n = recv(client_sock_fd, mesg, BUFSIZ-1, 0);
         //클라이언트에서 메시지를 받는다
