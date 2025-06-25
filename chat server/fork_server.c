@@ -150,7 +150,7 @@ int main(int argc, char **argv)
             is_write_from_client = 0;
             int n;
             char mesg[BUFSIZ];
-            n=read(child_pfd[0],mesg,BUFSIZ)
+            n=read(child_pfd[0],mesg,BUFSIZ);
             if(n == 0){
                 syslog(LOG_ERR,"cannot read child message");
             }
