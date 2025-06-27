@@ -15,5 +15,4 @@ void clean_active_process();
 void setup_signal_handlers_parent_main();
 void setup_signal_handlers_child_main();
 
-
 #endif //SIG_H

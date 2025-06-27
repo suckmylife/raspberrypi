@@ -105,9 +105,15 @@ int main(int argc, char **argv)
                     if (n_read_write > 0) {
                         mesg_buffer[n_read_write] = '\0';
                         syslog(LOG_INFO, "Parent received message from child %d: %s", active_children[i].pid, mesg_buffer);
-
-                        char *pid_str = strtok(mesg_buffer, ":");
-                        char *content = strtok(NULL, ""); 
+                        /*
+                            strchr 함수는 content라는 문자열(데이터 덩어리) 안에서 
+                            '\n'이라는 문자를 찾아. 그리고 그 '\n' 문자가 메모리 상의 
+                            어디에 있는지, 그 '주소'를 찾아내서 알려줌
+                        */
+                        char *pid_str  = strtok(mesg_buffer, ":");
+                        char *content  = strtok(NULL, "");
+                        char *rm_enter = strchr(content, "\n");
+                        if(rm_enter) *rm_enter = "\0";
 
                         if (pid_str && content) {
                             pid_t from_who = atoi(pid_str); 
@@ -143,6 +149,11 @@ int main(int argc, char **argv)
                                     } else {
                                         syslog(LOG_ERR, "Parent: Could not find client with PID %d to join room.", from_who);
                                     }
+                                } else if(isRm){
+                                    
+
+                                }else if(isList){
+
                                 }
                             } 
                             else if (active_children[i].name[0] == '\0') { 
