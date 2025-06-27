@@ -46,7 +46,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    // 서버 소켓 연결 (바인드): 소켓에 IP 주소와 포트 번호를 할당
+    // 서버 소켓 연결 (바인드): 소켓에 IP 주소와 포트 번호를 할당합니다.
     if(bind(ssock, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0){
         syslog(LOG_ERR, "No Bind: %m");
         exit(1);
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    // 서버 소켓(ssock)을 논블로킹 모드로 설정
+    // 서버 소켓(ssock)을 논블로킹 모드로 설정합니다.
     // 이렇게 하면 accept() 호출 시 대기 중인 연결이 없어도 블로킹되지 않고 즉시 반환됩니다.
     if (set_nonblocking(ssock) == -1) {
         syslog(LOG_ERR, "Failed to set ssock non-blocking: %m");
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
     
     // --- 부모 프로세스의 메인 루프 (새 클라이언트 연결 수락 및 자식 관리) ---
     while(true) { 
-        // 자식 종료 플래그가 설정되었다면, 종료된 자식을 정리
+        // 자식 종료 플래그가 설정되었다면, 종료된 자식을 정리합니다.
         if(child_exited_flag){
             clean_active_process(); // SIGCHLD 핸들러가 설정한 플래그를 확인하여 실제 정리 수행
             child_exited_flag = 0; // 플래그 초기화
@@ -103,12 +103,17 @@ int main(int argc, char **argv)
                     n_read_write = read(active_children[i].child_to_parent_read_fd, mesg_buffer, sizeof(mesg_buffer) - 1);
                     
                     if (n_read_write > 0) {
-                        mesg_buffer[n_read_write-1] = '\0';
                         mesg_buffer[n_read_write] = '\0';
                         syslog(LOG_INFO, "Parent received message from child %d: %s", active_children[i].pid, mesg_buffer);
-                        
+                        /*
+                            strchr 함수는 content라는 문자열(데이터 덩어리) 안에서 
+                            '\n'이라는 문자를 찾아. 그리고 그 '\n' 문자가 메모리 상의 
+                            어디에 있는지, 그 '주소'를 찾아내서 알려줌
+                        */
                         char *pid_str  = strtok(mesg_buffer, ":");
                         char *content  = strtok(NULL, "");
+                        char *rm_enter = strchr(content, '\n');
+                        if(rm_enter) *rm_enter = '\0';
 
                         if (pid_str && content) {
                             pid_t from_who = atoi(pid_str); 
