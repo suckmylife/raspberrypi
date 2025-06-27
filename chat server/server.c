@@ -1,5 +1,5 @@
 #include "comm.h"  
-#include "clientmanager.h"
+#include "clientprocess.h"
 #include "sig.h"
 
 // --- 전역 변수 정의 ---
@@ -21,7 +21,7 @@ int main(int argc, char **argv)
     char mesg_buffer[BUFSIZ]; // 메시지 버퍼 (main 함수용)
     ssize_t n_read_write; // 읽거나 쓴 바이트 수
 
-    // 메인 프로세스(부모)의 시그널 핸들러를 설정합니다.
+    // 메인 프로세스(부모)의 시그널 핸들러를 설정
     setup_signal_handlers_parent_main(); 
 
     // 데몬화 함수 호출 (argc, argv 인자 전달)
