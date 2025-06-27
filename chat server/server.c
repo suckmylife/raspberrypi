@@ -166,16 +166,17 @@ int main(int argc, char **argv)
                                         (strcmp(active_children[j].room_name, sender_room_name) == 0)) 
                                     {
                                         syslog(LOG_INFO, "Parent broadcasting to client %d ('%s') in room '%s'. Message: %s", active_children[j].pid, active_children[j].name, active_children[j].room_name, broadcast_mesg);
-                                        
-                                        if (kill(active_children[j].pid, SIGUSR1) == -1) {
-                                            syslog(LOG_ERR, "Parent: Failed to send SIGUSR1 to child %d: %m", active_children[j].pid);
-                                        } else {
-                                            if (write(active_children[j].parent_to_child_write_fd, broadcast_mesg, broadcast_len + 1) <= 0) { 
-                                                if (errno != EAGAIN && errno != EWOULDBLOCK) {
-                                                     //syslog(LOG_ERR, "Parent failed to broadcast to child %d: %m", active_children[j].pid);
-                                                }
+                                        ssize_t wlen = write(active_children[j].parent_to_child_write_fd, broadcast_mesg, broadcast_len + 1);
+                                        if ( wlen <= 0) { 
+                                            if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                                                    //syslog(LOG_ERR, "Parent failed to broadcast to child %d: %m", active_children[j].pid);
                                             }
+                                        }else if(wlen > 0){
+                                            if (kill(active_children[j].pid, SIGUSR1) == -1) {
+                                                syslog(LOG_ERR, "Parent: Failed to send SIGUSR1 to child %d: %m", active_children[j].pid);
+                                            } 
                                         }
+                                        
                                     }
                                 }
                             }
