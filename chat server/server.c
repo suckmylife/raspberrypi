@@ -112,8 +112,8 @@ int main(int argc, char **argv)
                         */
                         char *pid_str  = strtok(mesg_buffer, ":");
                         char *content  = strtok(NULL, "");
-                        char *rm_enter = strchr(content, "\n");
-                        if(rm_enter) *rm_enter = "\0";
+                        char *rm_enter = strchr(content, '\n');
+                        if(rm_enter) *rm_enter = '\0';
 
                         if (pid_str && content) {
                             pid_t from_who = atoi(pid_str); 
