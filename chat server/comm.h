@@ -43,14 +43,14 @@ typedef struct {
 } pipeInfo;
 
 // --- 전역 변수 선언 ---
-extern roomInfo room_info[CHAT_ROOM]; 
+extern roomInfo room_info[CHAT_ROOM];  
 extern pipeInfo active_children[MAX_CLIENT]; 
-extern volatile int num_active_children;
-extern volatile int room_num; 
+extern volatile int num_active_children; //활성화된 자식 프로세스(클라이언트 수);
+extern volatile int room_num;  // 만들어진 채팅방의 수
 
-extern volatile sig_atomic_t parent_sigusr_arrived; 
-extern volatile sig_atomic_t child_sigusr_arrived;  
-extern volatile sig_atomic_t child_exited_flag;   
+extern volatile sig_atomic_t parent_sigusr_arrived;  //부모에서 쓴다
+extern volatile sig_atomic_t child_sigusr_arrived;   //자식에서 쓴다
+extern volatile sig_atomic_t child_exited_flag;      //자식 죽음(클라이언트 종료)
 
 // --- FCNTL 관련 함수 ---
 int set_nonblocking(int fd);

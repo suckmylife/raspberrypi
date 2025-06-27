@@ -10,7 +10,7 @@ volatile int room_num                = 0;
 
 volatile sig_atomic_t parent_sigusr_arrived = 0; 
 volatile sig_atomic_t child_sigusr_arrived  = 0;  
-volatile sig_atomic_t child_exited_flag     = 0; 
+volatile sig_atomic_t child_exited_flag     = 0;
 
 int main(int argc, char **argv)
 {
@@ -111,7 +111,7 @@ int main(int argc, char **argv)
                             어디에 있는지, 그 '주소'를 찾아내서 알려줌
                         */
                         char *pid_str  = strtok(mesg_buffer, ":");
-                        char *content  = strtok(NULL, "");
+                        char *content  = strtok(NULL, '');
                         char *rm_enter = strchr(content, '\n');
                         if(rm_enter) *rm_enter = '\0';
 
@@ -136,12 +136,14 @@ int main(int argc, char **argv)
                                 } else if (isJoin) {
                                     char *join_room_name = content + 2 + strlen("join");
                                     int client_idx = -1;
+                                    //누가 이 명령어 썼냐
                                     for(int k=0; k<num_active_children; k++){
                                         if(active_children[k].pid == from_who){
                                             client_idx = k;
                                             break;
                                         }
                                     }
+                                    //채팅방 정보 저장
                                     if(client_idx != -1){
                                         strncpy(active_children[client_idx].room_name, join_room_name, NAME - 1);
                                         active_children[client_idx].room_name[NAME - 1] = '\0';
@@ -150,10 +152,34 @@ int main(int argc, char **argv)
                                         syslog(LOG_ERR, "Parent: Could not find client with PID %d to join room.", from_who);
                                     }
                                 } else if(isRm){
-                                    
+                                    int client_idx = -1;
+                                    for(int k=0; k<num_active_children; k++){
+                                        if(active_children[k].pid == from_who){
+                                            client_idx = k;
+                                            break;
+                                        }
+                                    }
+                                    //pipinfo에서 채팅방 정보 삭제
+                                    for(int k=0; k<num_active_children; k++){
+                                        if(active_children[k].pid == active_children[client_idx].room_name){
+                                            active_children[k].room_name = '';
+                                        }
+                                    }
+                                    //roomInfo에서 채팅방 목록에서 삭제
+                                    for(int k=0; k<room_num; k++){
+                                        if(room_info[k].name == active_children[client_idx].room_name){
+                                            for(int j = k; j<room_num-1; j++){
+                                                room_info[j] = room_info[j+1];
+                                            }
+                                        }
+                                    }
+                                    room_num--;
 
                                 }else if(isList){
-
+                                    char lists[BUFSIZ];
+                                    for(int k=0; k<room_num; k++){
+                                        lists[k] = room_info[k].name
+                                    }
                                 }
                             } 
                             else if (active_children[i].name[0] == '\0') { 
@@ -187,7 +213,6 @@ int main(int argc, char **argv)
                                                 syslog(LOG_ERR, "Parent: Failed to send SIGUSR1 to child %d: %m", active_children[j].pid);
                                             } 
                                         }
-                                        
                                     }
                                 }
                             }
