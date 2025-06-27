@@ -171,7 +171,7 @@ int main(int argc, char **argv)
                                     syslog(LOG_INFO, "Parent: Message from client %d ('%s') but not in a room. Message: %s", from_who, active_children[i].name, content);
                                     continue; 
                                 }
-
+                                //부모가 해당 채팅방에 브로드캐스트 하는 곳 
                                 for (int j = 0; j < num_active_children; j++) {
                                     if (active_children[j].isActive && 
                                         (strcmp(active_children[j].room_name, sender_room_name) == 0)) 

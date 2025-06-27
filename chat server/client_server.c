@@ -93,7 +93,7 @@ int main(int argc, char** argv)
 			memset(buf, 0, BUFSIZ);
 			int n = read(g_sockfd, buf, BUFSIZ);
 			if(n <= 0) break;
-			printf(COLOR_GREEN "\r%s" COLOR_RESET, buf);
+			printf(COLOR_GREEN "\r%s\n" COLOR_RESET, buf);
 			printf(COLOR_BLUE "\r> " COLOR_RESET);
 			fflush(NULL);
 		}
