@@ -140,7 +140,7 @@ int main(int argc, char **argv)
                             //누가 보냈는지 확인하기
                             int that_room = -1;
                             char *r_name = NULL;
-                            for(int i = 0; i < i; i++){
+                            for(int i = 0; i < client_num; i++){
                                 if(client_pipe_info[i].pid == from_who){
                                     that_room = i;
                                     r_name = client_pipe_info[i].room_name;
