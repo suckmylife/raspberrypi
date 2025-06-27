@@ -104,6 +104,7 @@ int main(int argc, char **argv)
                     
                     if (n_read_write > 0) {
                         mesg_buffer[n_read_write-1] = '\0';
+                        mesg_buffer[n_read_write] = '\0';
                         syslog(LOG_INFO, "Parent received message from child %d: %s", active_children[i].pid, mesg_buffer);
                         
                         char *pid_str  = strtok(mesg_buffer, ":");
