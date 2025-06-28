@@ -175,12 +175,10 @@ int main(int argc, char **argv)
                                     //roomInfo에서 채팅방 목록에서 삭제
                                     for(int k=0; k<room_num; k++){
                                         if(strcmp(room_info[k].name, rm_room_name)){
-                                            if(k == room_num-1){
-                                                room_info[k-1] = room_info[k];
-                                            }else{
+                                            if(k < room_num-1){
                                                 for(int j = k; j<room_num-1; j++){
                                                     room_info[j] = room_info[j+1];
-                                                    syslog(LOG_INFO, "Parent: Remove Room name ('%s')",rm_room_name);
+                                                    syslog(LOG_INFO, "Shifted: room at index %d is now '%s'", j, room_info[j].name);
                                                 }
                                             }
                                             room_num--;
