@@ -111,7 +111,7 @@ int main(int argc, char **argv)
                             어디에 있는지, 그 '주소'를 찾아내서 알려줌
                         */
                         char *pid_str  = strtok(mesg_buffer, ":");
-                        char *content  = strtok(NULL, '');
+                        char *content  = strtok(NULL, "");
                         char *rm_enter = strchr(content, '\n');
                         if(rm_enter) *rm_enter = '\0';
 
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
                                     //pipinfo에서 채팅방 정보 삭제
                                     for(int k=0; k<num_active_children; k++){
                                         if(active_children[k].pid == active_children[client_idx].room_name){
-                                            active_children[k].room_name = '';
+                                            active_children[k].room_name = "";
                                         }
                                     }
                                     //roomInfo에서 채팅방 목록에서 삭제
@@ -178,7 +178,12 @@ int main(int argc, char **argv)
                                 }else if(isList){
                                     char lists[BUFSIZ];
                                     for(int k=0; k<room_num; k++){
-                                        lists[k] = room_info[k].name
+                                        //lists[k] = room_info[k].name;
+                                        /*
+                                            C언어에서 배열 이름은 곧 그 배열의 첫 번째 요소의 주소(포인터)로 
+                                            취급. 배열 자체를 통째로 = 연산자로 복사할 수 없음
+                                        */
+                                        strcpy(&lists[k], room_info[k].name);
                                     }
                                 }
                             } 
