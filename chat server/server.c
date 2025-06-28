@@ -152,15 +152,17 @@ int main(int argc, char **argv)
                                         syslog(LOG_ERR, "Parent: Could not find client with PID %d to join room.", from_who);
                                     }
                                 } else if(isRm){
-                                    int client_idx = -1;
                                     /*
                                         content + 2 + 2가 되어 content + 4와 같음 (포인터 연산)
                                         즉, 원본 문자열의 처음 4글자를 건너뛰어라
+
+                                        연산자로 문자열을 비교하면 문자열의 내용이 
+                                        아니라 문자열의 주소(포인터)를 비교
                                     */
                                     char *rm_room_name = content + 2 + strlen("rm");
                                     //pipinfo에서 채팅방 정보 삭제
                                     for(int k=0; k<num_active_children; k++){
-                                        if(active_children[k].room_name == rm_room_name){
+                                        if(strcmp(active_children[k].room_name, rm_room_name)){
                                             /*
                                             C언어에서 배열 이름은 곧 그 배열의 첫 번째 요소의 주소(포인터)로 
                                             취급. 배열 자체를 통째로 = 연산자로 복사할 수 없음
@@ -172,7 +174,7 @@ int main(int argc, char **argv)
                                     }
                                     //roomInfo에서 채팅방 목록에서 삭제
                                     for(int k=0; k<room_num; k++){
-                                        if(room_info[k].name == rm_room_name){
+                                        if(strcmp(room_info[k].name, rm_room_name)){
                                             if(k == room_num-1){
                                                 room_info[k-1] = room_info[k];
                                             }else{
