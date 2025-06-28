@@ -162,7 +162,7 @@ int main(int argc, char **argv)
                                     char *rm_room_name = content + 2 + strlen("rm");
                                     //pipinfo에서 채팅방 정보 삭제
                                     for(int k=0; k<num_active_children; k++){
-                                        if(strcmp(active_children[k].room_name, rm_room_name)){
+                                        if(strcmp(active_children[k].room_name, rm_room_name)==0){
                                             /*
                                             C언어에서 배열 이름은 곧 그 배열의 첫 번째 요소의 주소(포인터)로 
                                             취급. 배열 자체를 통째로 = 연산자로 복사할 수 없음
@@ -174,7 +174,7 @@ int main(int argc, char **argv)
                                     }
                                     //roomInfo에서 채팅방 목록에서 삭제
                                     for(int k=0; k<room_num; k++){
-                                        if(strcmp(room_info[k].name, rm_room_name)){
+                                        if(strcmp(room_info[k].name, rm_room_name)==0){
                                             if(k < room_num-1){
                                                 for(int j = k; j<room_num-1; j++){
                                                     room_info[j] = room_info[j+1];
@@ -182,6 +182,7 @@ int main(int argc, char **argv)
                                                 }
                                             }
                                             room_num--;
+                                            break;
                                         }
                                     }
                                 }else if(isList){
