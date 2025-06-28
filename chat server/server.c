@@ -162,6 +162,10 @@ int main(int argc, char **argv)
                                     //pipinfo에서 채팅방 정보 삭제
                                     for(int k=0; k<num_active_children; k++){
                                         if(active_children[k].pid == active_children[client_idx].pid){
+                                            /*
+                                            C언어에서 배열 이름은 곧 그 배열의 첫 번째 요소의 주소(포인터)로 
+                                            취급. 배열 자체를 통째로 = 연산자로 복사할 수 없음
+                                            */
                                             strcpy(active_children[k].room_name, "");
                                         }
                                     }
@@ -170,20 +174,16 @@ int main(int argc, char **argv)
                                         if(room_info[k].name == active_children[client_idx].room_name){
                                             for(int j = k; j<room_num-1; j++){
                                                 room_info[j] = room_info[j+1];
+                                                syslog(LOG_INFO, "Parent: Remove Room name ('%s')",room_info[k].name);
                                             }
                                         }
                                     }
                                     room_num--;
 
                                 }else if(isList){
-                                    char lists[BUFSIZ];
                                     for(int k=0; k<room_num; k++){
                                         //lists[k] = room_info[k].name;
-                                        /*
-                                            C언어에서 배열 이름은 곧 그 배열의 첫 번째 요소의 주소(포인터)로 
-                                            취급. 배열 자체를 통째로 = 연산자로 복사할 수 없음
-                                        */
-                                        strcpy(&lists[k], room_info[k].name);
+                                        syslog(LOG_INFO, "Parent: Show Room List %d : ('%s')",k,room_info[k].name);
                                     }
                                 }
                             } 
