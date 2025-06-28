@@ -136,14 +136,14 @@ int main(int argc, char **argv)
                                 } else if (isJoin) {
                                     char *join_room_name = content + 2 + strlen("join");
                                     int client_idx = -1;
-                                    //누가 이 명령어 썼냐
+                                    //누가 이 명령어 썼냐, 쓴 클라이언트에게 부여하기 위한 검색 작업
                                     for(int k=0; k<num_active_children; k++){
                                         if(active_children[k].pid == from_who){
                                             client_idx = k;
                                             break;
                                         }
                                     }
-                                    //채팅방 정보 저장
+                                    //그 클라이언트의 구조체에 채팅방 정보 저장
                                     if(client_idx != -1){
                                         strncpy(active_children[client_idx].room_name, join_room_name, NAME - 1);
                                         active_children[client_idx].room_name[NAME - 1] = '\0';
@@ -153,33 +153,37 @@ int main(int argc, char **argv)
                                     }
                                 } else if(isRm){
                                     int client_idx = -1;
-                                    for(int k=0; k<num_active_children; k++){
-                                        if(active_children[k].pid == from_who){
-                                            client_idx = k;
-                                            break;
-                                        }
-                                    }
+                                    /*
+                                        content + 2 + 2가 되어 content + 4와 같음 (포인터 연산)
+                                        즉, 원본 문자열의 처음 4글자를 건너뛰어라
+                                    */
+                                    char *rm_room_name = content + 2 + strlen("rm");
                                     //pipinfo에서 채팅방 정보 삭제
                                     for(int k=0; k<num_active_children; k++){
-                                        if(active_children[k].pid == active_children[client_idx].pid){
+                                        if(active_children[k].room_name == rm_room_name){
                                             /*
                                             C언어에서 배열 이름은 곧 그 배열의 첫 번째 요소의 주소(포인터)로 
                                             취급. 배열 자체를 통째로 = 연산자로 복사할 수 없음
                                             */
                                             strcpy(active_children[k].room_name, "");
+                                            syslog(LOG_INFO, "Parent: Remove Room Info" );
+                                            
                                         }
                                     }
                                     //roomInfo에서 채팅방 목록에서 삭제
                                     for(int k=0; k<room_num; k++){
-                                        if(room_info[k].name == active_children[client_idx].room_name){
-                                            for(int j = k; j<room_num-1; j++){
-                                                room_info[j] = room_info[j+1];
-                                                syslog(LOG_INFO, "Parent: Remove Room name ('%s')",room_info[k].name);
+                                        if(room_info[k].name == rm_room_name){
+                                            if(k == room_num-1){
+                                                room_info[k-1] = room_info[k];
+                                            }else{
+                                                for(int j = k; j<room_num-1; j++){
+                                                    room_info[j] = room_info[j+1];
+                                                    syslog(LOG_INFO, "Parent: Remove Room name ('%s')",rm_room_name);
+                                                }
                                             }
+                                            room_num--;
                                         }
                                     }
-                                    room_num--;
-
                                 }else if(isList){
                                     for(int k=0; k<room_num; k++){
                                         //lists[k] = room_info[k].name;
