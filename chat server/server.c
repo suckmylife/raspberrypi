@@ -161,8 +161,8 @@ int main(int argc, char **argv)
                                     }
                                     //pipinfo에서 채팅방 정보 삭제
                                     for(int k=0; k<num_active_children; k++){
-                                        if(active_children[k].pid == active_children[client_idx].room_name){
-                                            active_children[k].room_name = "";
+                                        if(active_children[k].pid == active_children[client_idx].pid){
+                                            strcpy(active_children[k].room_name, "");
                                         }
                                     }
                                     //roomInfo에서 채팅방 목록에서 삭제
