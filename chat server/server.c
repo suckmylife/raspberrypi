@@ -283,8 +283,17 @@ int main(int argc, char **argv)
                                     for(int k=0; k<num_active_children; k++){
                                         if(strcmp(active_children[k].name, user_name) == 0){
                                             
-                                            char final_message;
-                                            size_t name_len = strnlen(final_message, sizeof(final_message));
+                                            char final_message[BUFSIZ];
+                                            size_t name_len = strnlen(active_children[client_idx].name, NAME);
+                                            size_t mesg_len = strnlen(mesg, 1024);
+
+                                            // 적당한 최대 길이 설정 (예: final_message 크기 - 여유 공간)
+                                            size_t max_len = sizeof(final_message) - name_len - 10; // 10은 포맷 문자 여유
+
+                                            if (mesg_len > max_len) {
+                                                mesg_len = max_len;
+                                                mesg[mesg_len] = '\0'; // 문자열 자르기
+                                            }
                                             snprintf(final_message, sizeof(final_message), "from %s : %s", active_children[client_idx].name, mesg);
                                             ssize_t wlen = write(active_children[client_idx].parent_to_child_write_fd, final_message, name_len);
                                             if ( wlen <= 0) { 
