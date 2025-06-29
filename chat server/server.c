@@ -140,7 +140,7 @@ int main(int argc, char **argv)
                                     int client_idx = -1;
                                     //누가 이 명령어 썼냐, 쓴 클라이언트에게 부여하기 위한 검색 작업
                                     for(int k=0; k<num_active_children; k++){
-                                        if(strcmp(active_children[k].pid, from_who) == 0){
+                                        if(active_children[k].pid == from_who){
                                             client_idx = k;
                                             break;
                                         }
@@ -191,7 +191,7 @@ int main(int argc, char **argv)
                                     int client_idx = -1;
                                     //누가 이 명령어 썼냐, 쓴 클라이언트에게 부여하기 위한 검색 작업
                                     for(int k=0; k<num_active_children; k++){
-                                        if(strcmp(active_children[k].pid, from_who) == 0){
+                                        if(active_children[k].pid == from_who){
                                             client_idx = k;
                                             break;
                                         }
@@ -215,7 +215,7 @@ int main(int argc, char **argv)
                                 }else if(isLeave){
                                     //leave한 pid 클라이언트의 채팅방 정보 삭제
                                     for(int k=0; k<num_active_children; k++){
-                                        if(strcmp(active_children[k].pid, from_who) == 0){
+                                        if(active_children[k].pid == from_who){
                                             strcpy(active_children[k].room_name, "");
                                             syslog(LOG_INFO, "Parent : Leave the chat room");
                                             break;
@@ -229,7 +229,7 @@ int main(int argc, char **argv)
                                     int client_idx = -1;
                                     //누가 이 명령어 썼냐, 쓴 클라이언트에게 부여하기 위한 검색 작업
                                     for(int k=0; k<num_active_children; k++){
-                                        if(strcmp(active_children[k].pid, from_who) == 0){
+                                        if(active_children[k].pid == from_who){
                                             client_idx = k;
                                             break;
                                         }
@@ -285,7 +285,7 @@ int main(int argc, char **argv)
                                     int client_idx = -1;
                                     //누가 이 명령어 썼냐, 쓴 클라이언트에게 부여하기 위한 검색 작업
                                     for(int k=0; k<num_active_children; k++){
-                                        if(strcmp(active_children[k].pid, from_who) == 0){
+                                        if(active_children[k].pid == from_who){
                                             client_idx = k;
                                             break;
                                         }
