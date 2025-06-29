@@ -206,7 +206,7 @@ int main(int argc, char **argv)
                                             }
                                         }else if(wlen > 0){
                                             if (kill(active_children[client_idx].pid, SIGUSR1) == -1) {
-                                                syslog(LOG_ERR, "Parent: (list) Failed to send SIGUSR1 to child %d: %m", active_children[j].pid);
+                                                syslog(LOG_ERR, "Parent: (list) Failed to send SIGUSR1 to child %d: %m", active_children[client_idx].pid);
                                             } 
                                         }
                                     }
@@ -265,7 +265,7 @@ int main(int argc, char **argv)
                                     if (token != NULL) {
                                         strcpy(mesg, token);
                                     }else {
-                                        mesg[0] = 'no message';
+                                        mesg[0] = '\0';
                                     }
                                 }
                                 
