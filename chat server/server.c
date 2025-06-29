@@ -239,9 +239,9 @@ int main(int argc, char **argv)
                                         for(int k=0; k<num_active_children; k++){
                                             if(strcmp(active_children[k].room_name,active_children[client_idx].room_name) == 0){
                                                 size_t name_len = strnlen(active_children[k].name, sizeof(active_children[k].name));
-                                                active_children[k].name[name_len] = '\n';
-                                                active_children[k].name[name_len+1] = '\0';
-                                                ssize_t wlen = write(active_children[client_idx].parent_to_child_write_fd, active_children[k].name, name_len);
+                                                char temp[BUFSIZ];
+                                                sprintf(temp, "%s\n", active_children[k].name);
+                                                ssize_t wlen = write(active_children[client_idx].parent_to_child_write_fd, temp, strlen(temp));
                                                 if ( wlen <= 0) { 
                                                     if (errno != EAGAIN && errno != EWOULDBLOCK) {
                                                             //syslog(LOG_ERR, "Parent failed to broadcast to child %d: %m", active_children[j].pid);
