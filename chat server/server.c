@@ -299,15 +299,16 @@ int main(int argc, char **argv)
                                                 size_t name_len = strnlen(active_children[client_idx].name, NAME);
                                                 size_t mesg_len = strnlen(mesg, 1024);
 
-                                                // 적당한 최대 길이 설정 (예: final_message 크기 - 여유 공간)
-                                                size_t max_len = sizeof(final_message) - name_len - 10; // 10은 포맷 문자 여유
+                                                // // 적당한 최대 길이 설정 (예: final_message 크기 - 여유 공간)
+                                                // size_t max_len = sizeof(final_message) - name_len - 10; // 10은 포맷 문자 여유
 
-                                                if (mesg_len > max_len) {
-                                                    mesg_len = max_len;
-                                                    mesg[mesg_len] = '\0'; // 문자열 자르기
-                                                }
+                                                // if (mesg_len > max_len) {
+                                                //     mesg_len = max_len;
+                                                //     mesg[mesg_len] = '\0'; // 문자열 자르기
+                                                // }
                                                 // 가장 기본적인 방법으로 시도
                                                 strcpy(final_message, "from ");
+                                                strcat(final_message, " ");
                                                 strcat(final_message, active_children[client_idx].name);
                                                 strcat(final_message, " : ");
                                                 strcat(final_message, mesg);
@@ -317,7 +318,7 @@ int main(int argc, char **argv)
                                                             //syslog(LOG_ERR, "Parent failed to broadcast to child %d: %m", active_children[j].pid);
                                                     }
                                                 }else if(wlen > 0){
-                                                    if (kill(active_children[client_idx].pid, SIGUSR1) == -1) {
+                                                    if (kill(active_children[k].pid, SIGUSR1) == -1) {
                                                         syslog(LOG_ERR, "Parent: (whisper) Failed to send SIGUSR1 to child %d: %m", active_children[client_idx].pid);
                                                     } 
                                                 }
