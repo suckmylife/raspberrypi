@@ -31,8 +31,14 @@ int set_blocking(int fd) {
 int check_command(const char* mesg, const char* command){
     if (mesg[0] != '/')
         return 0;
-    else if((strncmp(mesg + 1, command, strlen(command)) != 0) || mesg[0] != '!')
-        return 0;
+    else if((strcmp(mesg,'whisper') == 0) && mesg[0] == '!'){
+        if (strncmp(mesg + 1, command, strlen(command)) == 0) {
+        char char_after_command = mesg[1 + strlen(command)];
+        if (char_after_command == ' ' || char_after_command == '\0' || char_after_command == '\n') {
+            return 1; 
+        }
+    }
+    }
     if (strncmp(mesg + 1, command, strlen(command)) == 0) {
         char char_after_command = mesg[1 + strlen(command)];
         if (char_after_command == ' ' || char_after_command == '\0' || char_after_command == '\n') {
