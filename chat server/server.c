@@ -284,8 +284,8 @@ int main(int argc, char **argv)
                                         if(strcmp(active_children[k].name, user_name) == 0){
                                             
                                             char final_message[BUFSIZ];
-                                            snprintf(final_message, sizeof(final_message), "from %s : %s", active_children[client_idx].name, mesg);
                                             size_t name_len = strnlen(final_message, sizeof(final_message));
+                                            snprintf(final_message, sizeof(final_message), "from %s : %s", (int)name_len,active_children[client_idx].name, mesg);
                                             ssize_t wlen = write(active_children[client_idx].parent_to_child_write_fd, final_message, name_len);
                                             if ( wlen <= 0) { 
                                                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
