@@ -290,7 +290,7 @@ int main(int argc, char **argv)
                                             break;
                                         }
                                     }
-
+                                    syslog(LOG_INFO, "Parent: Client whisper to '%s'.", user_name);
                                     if(client_idx != -1){ //이 명령어를 쓴 유저가 귓속말 하려는 유저에게 write 
                                         for(int k=0; k<num_active_children; k++){
                                             if(strcmp(active_children[k].name, user_name) == 0){
