@@ -119,10 +119,11 @@ int main(int argc, char **argv)
                             pid_t from_who = atoi(pid_str); 
                             
                             if (content[0] == '/') {
-                                int isAdd = check_command(content, "add");
-                                int isJoin = check_command(content, "join");
-                                int isRm = check_command(content, "rm"); 
-                                int isList = check_command(content, "list"); 
+                                int isAdd     = check_command(content, "add");
+                                int isJoin    = check_command(content, "join");
+                                int isRm      = check_command(content, "rm"); 
+                                int isList    = check_command(content, "list"); 
+                                int isUsers   = check_command(content, "users");
 
                                 if (isAdd) {
                                     if (room_num < CHAT_ROOM) {
@@ -205,9 +206,42 @@ int main(int argc, char **argv)
                                             }
                                         }else if(wlen > 0){
                                             if (kill(active_children[client_idx].pid, SIGUSR1) == -1) {
-                                                syslog(LOG_ERR, "Parent: Failed to send SIGUSR1 to child %d: %m", active_children[j].pid);
+                                                syslog(LOG_ERR, "Parent: (list) Failed to send SIGUSR1 to child %d: %m", active_children[j].pid);
                                             } 
                                         }
+                                    }
+                                }
+                                /////////////////////////////////////////////////////////////////////////////
+                                ///////////////     유저 고유 명령어  /////////////////////////////////////////
+                                /////////////////////////////////////////////////////////////////////////////
+                                else if(isUsers){ //채팅방에 참여하는 사용자 목록수 
+                                    int client_idx = -1;
+                                    //누가 이 명령어 썼냐, 쓴 클라이언트에게 부여하기 위한 검색 작업
+                                    for(int k=0; k<num_active_children; k++){
+                                        if(active_children[k].pid == from_who){
+                                            client_idx = k;
+                                            break;
+                                        }
+                                    }
+
+                                    if(client_idx != -1){ //이 명령어를 쓴 유저에게 현재 채팅방의 유저를 알려준다. 
+                                        for(int k=0; k<num_active_children; k++){
+                                            if(active_children[k].room_name == active_children[client_idx].room_name){
+                                                int name_len = sizeof(active_children[k].name);
+                                                ssize_t wlen = write(active_children[client_idx].parent_to_child_write_fd, active_children[k].name, name_len + 1);
+                                                if ( wlen <= 0) { 
+                                                    if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                                                            //syslog(LOG_ERR, "Parent failed to broadcast to child %d: %m", active_children[j].pid);
+                                                    }
+                                                }else if(wlen > 0){
+                                                    if (kill(active_children[client_idx].pid, SIGUSR1) == -1) {
+                                                        syslog(LOG_ERR, "Parent: (users) Failed to send SIGUSR1 to child %d: %m", active_children[client_idx].pid);
+                                                    } 
+                                                }
+                                            }
+                                        }
+                                    }else{
+                                        syslog(LOG_ERR, "this user no exist");
                                     }
                                 }
                             } 
@@ -215,6 +249,59 @@ int main(int argc, char **argv)
                                 strncpy(active_children[i].name, content, NAME - 1);
                                 active_children[i].name[NAME - 1] = '\0';
                                 syslog(LOG_INFO, "Parent: Client %d set name to '%s'.", from_who, active_children[i].name);
+                            }
+                            else if (content[0] == '!' && check_command(content, "whisper")){ //귓속말일때
+                                char *c = content + 2 + strlen("whisper");
+                                char user_name[BUFSIZ];
+                                char mesg[BUFSIZ];
+                                char origin[BUFSIZ]; // 원본 문자열을 보존하기 위한 복사본
+                                strcpy(origin, c); // '!whisper+ "공백" ' 건너뛰기
+                                //strtok는 원본을 훼손함
+                                char *token = strtok(origin, " "); // origin에서 첫번째 공백까지 잘라라
+                                if (token != NULL) {
+                                    strcpy(user_name, token);
+                                    // 나머지 부분을 메시지로 저장
+                                    token = strtok(NULL, ""); // 첫번째 공백까지 잘라진 나머지 부분을 가져와라
+                                    if (token != NULL) {
+                                        strcpy(mesg, token);
+                                    }else {
+                                        mesg[0] = 'no message';
+                                    }
+                                }
+                                
+                                int client_idx = -1;
+                                //누가 이 명령어 썼냐, 쓴 클라이언트에게 부여하기 위한 검색 작업
+                                for(int k=0; k<num_active_children; k++){
+                                    if(active_children[k].pid == from_who){
+                                        client_idx = k;
+                                        break;
+                                    }
+                                }
+
+                                if(client_idx != -1){ //이 명령어를 쓴 유저가 귓속말 하려는 유저에게 write 
+                                    for(int k=0; k<num_active_children; k++){
+                                        if(strcmp(active_children[k].name, user_name) == 0){
+                                            
+                                            char final_message[BUFSIZ];
+                                            sprintf(final_message, "from %s : %s", active_children[client_idx].name, mesg);
+                                            int name_len = sizeof(final_message);
+                                            ssize_t wlen = write(active_children[client_idx].parent_to_child_write_fd, final_message, name_len + 1);
+                                            if ( wlen <= 0) { 
+                                                if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                                                        //syslog(LOG_ERR, "Parent failed to broadcast to child %d: %m", active_children[j].pid);
+                                                }
+                                            }else if(wlen > 0){
+                                                if (kill(active_children[client_idx].pid, SIGUSR1) == -1) {
+                                                    syslog(LOG_ERR, "Parent: (whisper) Failed to send SIGUSR1 to child %d: %m", active_children[client_idx].pid);
+                                                } 
+                                            }
+                                            break;
+                                        }
+                                    }
+                                }else{
+                                    syslog(LOG_ERR, "this user no exist");
+                                }
+                                
                             }
                             else { 
                                 char broadcast_mesg[BUFSIZ + NAME + 10]; 
@@ -239,7 +326,7 @@ int main(int argc, char **argv)
                                             }
                                         }else if(wlen > 0){
                                             if (kill(active_children[j].pid, SIGUSR1) == -1) {
-                                                syslog(LOG_ERR, "Parent: Failed to send SIGUSR1 to child %d: %m", active_children[j].pid);
+                                                syslog(LOG_ERR, "Parent: (broad cast) Failed to send SIGUSR1 to child %d: %m", active_children[j].pid);
                                             } 
                                         }
                                     }
