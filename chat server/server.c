@@ -240,7 +240,7 @@ int main(int argc, char **argv)
                                             if(strcmp(active_children[k].room_name,active_children[client_idx].room_name) == 0){
                                                 size_t name_len = strnlen(active_children[k].name, sizeof(active_children[k].name));
                                                 active_children[k].name[name_len] = '\n';
-                                                ctive_children[k].name[name_len+1] = '\0';
+                                                active_children[k].name[name_len+1] = '\0';
                                                 ssize_t wlen = write(active_children[client_idx].parent_to_child_write_fd, active_children[k].name, name_len);
                                                 if ( wlen <= 0) { 
                                                     if (errno != EAGAIN && errno != EWOULDBLOCK) {
