@@ -185,10 +185,29 @@ int main(int argc, char **argv)
                                             break;
                                         }
                                     }
-                                }else if(isList){
+                                }else if(isList){//방 리스트 목록
+                                    int client_idx = -1;
+                                    //누가 이 명령어 썼냐, 쓴 클라이언트에게 부여하기 위한 검색 작업
+                                    for(int k=0; k<num_active_children; k++){
+                                        if(active_children[k].pid == from_who){
+                                            client_idx = k;
+                                            break;
+                                        }
+                                    }
+                                    //리스트 목록 작성하기
                                     for(int k=0; k<room_num; k++){
-                                        //lists[k] = room_info[k].name;
                                         syslog(LOG_INFO, "Parent: Show Room List %d : ('%s')",k,room_info[k].name);
+                                        int name_len = sizeof(room_info[k].name);
+                                        ssize_t wlen = write(active_children[client_idx].parent_to_child_write_fd, room_info[k].name, name_len + 1);
+                                        if ( wlen <= 0) { 
+                                            if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                                                    //syslog(LOG_ERR, "Parent failed to broadcast to child %d: %m", active_children[j].pid);
+                                            }
+                                        }else if(wlen > 0){
+                                            if (kill(active_children[client_idx].pid, SIGUSR1) == -1) {
+                                                syslog(LOG_ERR, "Parent: Failed to send SIGUSR1 to child %d: %m", active_children[j].pid);
+                                            } 
+                                        }
                                     }
                                 }
                             } 
