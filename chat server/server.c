@@ -300,19 +300,17 @@ int main(int argc, char **argv)
                                                 size_t mesg_len = strnlen(mesg, 1024);
 
                                                 // // 적당한 최대 길이 설정 (예: final_message 크기 - 여유 공간)
-                                                // size_t max_len = sizeof(final_message) - name_len - 10; // 10은 포맷 문자 여유
+                                                size_t max_len = sizeof(final_message) - name_len - 10; // 10은 포맷 문자 여유
 
-                                                // if (mesg_len > max_len) {
-                                                //     mesg_len = max_len;
-                                                //     mesg[mesg_len] = '\0'; // 문자열 자르기
-                                                // }
-                                                // 가장 기본적인 방법으로 시도
-                                                strcpy(final_message, "from ");
-                                                strcat(final_message, " ");
-                                                strcat(final_message, active_children[client_idx].name);
-                                                strcat(final_message, " : ");
-                                                strcat(final_message, mesg);
-                                                ssize_t wlen = write(active_children[k].parent_to_child_write_fd, final_message, name_len);
+                                                if (mesg_len > max_len) {
+                                                    mesg_len = max_len;
+                                                    mesg[mesg_len] = '\0'; // 문자열 자르기
+                                                }
+                                                snprintf(final_message, sizeof(final_message), "from %.*s : %.*s",
+                                                        (int)name_len, active_children[client_idx].name,
+                                                        (int)mesg_len, mesg);
+                                                size_t final_len = strlen(final_message);
+                                                ssize_t wlen = write(active_children[k].parent_to_child_write_fd, final_message, final_len);
                                                 if ( wlen <= 0) { 
                                                     if (errno != EAGAIN && errno != EWOULDBLOCK) {
                                                             //syslog(LOG_ERR, "Parent failed to broadcast to child %d: %m", active_children[j].pid);
