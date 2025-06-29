@@ -198,8 +198,9 @@ int main(int argc, char **argv)
                                     //리스트 목록 작성하기
                                     for(int k=0; k<room_num; k++){
                                         syslog(LOG_INFO, "Parent: Show Room List %d : ('%s')",k,room_info[k].name);
-                                        int name_len = sizeof(room_info[k].name);
-                                        ssize_t wlen = write(active_children[client_idx].parent_to_child_write_fd, room_info[k].name, name_len + 1);
+                                        //strnlen : 보통 버퍼 크기가 정해져 있을 때, 그 크기를 넘지 않고 문자열 길이를 안전하게 구함
+                                        size_t name_len = strnlen(room_info[k].name, sizeof(room_info[k].name));
+                                        ssize_t wlen = write(active_children[client_idx].parent_to_child_write_fd, room_info[k].name, name_len);
                                         if ( wlen <= 0) { 
                                             if (errno != EAGAIN && errno != EWOULDBLOCK) {
                                                     //syslog(LOG_ERR, "Parent failed to broadcast to child %d: %m", active_children[j].pid);
@@ -227,8 +228,8 @@ int main(int argc, char **argv)
                                     if(client_idx != -1){ //이 명령어를 쓴 유저에게 현재 채팅방의 유저를 알려준다. 
                                         for(int k=0; k<num_active_children; k++){
                                             if(active_children[k].room_name == active_children[client_idx].room_name){
-                                                int name_len = sizeof(active_children[k].name);
-                                                ssize_t wlen = write(active_children[client_idx].parent_to_child_write_fd, active_children[k].name, name_len + 1);
+                                                size_t name_len = strnlen(active_children[k].name, sizeof(active_children[k].name));
+                                                ssize_t wlen = write(active_children[client_idx].parent_to_child_write_fd, active_children[k].name, name_len);
                                                 if ( wlen <= 0) { 
                                                     if (errno != EAGAIN && errno != EWOULDBLOCK) {
                                                             //syslog(LOG_ERR, "Parent failed to broadcast to child %d: %m", active_children[j].pid);
@@ -283,9 +284,9 @@ int main(int argc, char **argv)
                                         if(strcmp(active_children[k].name, user_name) == 0){
                                             
                                             char final_message[BUFSIZ];
-                                            sprintf(final_message, "from %s : %s", active_children[client_idx].name, mesg);
-                                            int name_len = sizeof(final_message);
-                                            ssize_t wlen = write(active_children[client_idx].parent_to_child_write_fd, final_message, name_len + 1);
+                                            snprintf(final_message, "from %s : %s", active_children[client_idx].name, mesg);
+                                            size_t name_len = strnlen(final_message, sizeof(final_message));
+                                            ssize_t wlen = write(active_children[client_idx].parent_to_child_write_fd, final_message, name_len);
                                             if ( wlen <= 0) { 
                                                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
                                                         //syslog(LOG_ERR, "Parent failed to broadcast to child %d: %m", active_children[j].pid);
