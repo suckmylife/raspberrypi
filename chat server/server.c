@@ -306,10 +306,12 @@ int main(int argc, char **argv)
                                                     mesg_len = max_len;
                                                     mesg[mesg_len] = '\0'; // 문자열 자르기
                                                 }
-                                                snprintf(final_message, sizeof(final_message), "from %.*s : %.*s",
-                                                        (int)name_len, active_children[client_idx].name,
-                                                        (int)mesg_len, mesg);
-                                                ssize_t wlen = write(active_children[client_idx].parent_to_child_write_fd, final_message, name_len);
+                                                // 가장 기본적인 방법으로 시도
+                                                strcpy(final_message, "from ");
+                                                strcat(final_message, active_children[client_idx].name);
+                                                strcat(final_message, " : ");
+                                                strcat(final_message, mesg);
+                                                ssize_t wlen = write(active_children[k].parent_to_child_write_fd, final_message, name_len);
                                                 if ( wlen <= 0) { 
                                                     if (errno != EAGAIN && errno != EWOULDBLOCK) {
                                                             //syslog(LOG_ERR, "Parent failed to broadcast to child %d: %m", active_children[j].pid);
