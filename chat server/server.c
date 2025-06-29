@@ -119,11 +119,12 @@ int main(int argc, char **argv)
                             pid_t from_who = atoi(pid_str); 
                             
                             if (content[0] == '/') {
-                                int isAdd     = check_command(content, "add");
-                                int isJoin    = check_command(content, "join");
-                                int isRm      = check_command(content, "rm"); 
-                                int isList    = check_command(content, "list"); 
-                                int isUsers   = check_command(content, "users");
+                                int isAdd     = check_command(content, "add"    );
+                                int isJoin    = check_command(content, "join"   );
+                                int isRm      = check_command(content, "rm"     ); 
+                                int isList    = check_command(content, "list"   ); 
+                                int isUsers   = check_command(content, "users"  );
+                                int isLeave   = check_command(content, "leave"  );
 
                                 if (isAdd) {
                                     if (room_num < CHAT_ROOM) {
@@ -139,7 +140,7 @@ int main(int argc, char **argv)
                                     int client_idx = -1;
                                     //누가 이 명령어 썼냐, 쓴 클라이언트에게 부여하기 위한 검색 작업
                                     for(int k=0; k<num_active_children; k++){
-                                        if(active_children[k].pid == from_who){
+                                        if(strcmp(active_children[k].pid, from_who) == 0){
                                             client_idx = k;
                                             break;
                                         }
@@ -190,7 +191,7 @@ int main(int argc, char **argv)
                                     int client_idx = -1;
                                     //누가 이 명령어 썼냐, 쓴 클라이언트에게 부여하기 위한 검색 작업
                                     for(int k=0; k<num_active_children; k++){
-                                        if(active_children[k].pid == from_who){
+                                        if(strcmp(active_children[k].pid, from_who) == 0){
                                             client_idx = k;
                                             break;
                                         }
@@ -211,6 +212,15 @@ int main(int argc, char **argv)
                                             } 
                                         }
                                     }
+                                }else if(isLeave){
+                                    //leave한 pid 클라이언트의 채팅방 정보 삭제
+                                    for(int k=0; k<num_active_children; k++){
+                                        if(strcmp(active_children[k].pid, from_who) == 0){
+                                            strcpy(active_children[k].room_name, "");
+                                            syslog(LOG_INFO, "Parent : Leave the chat room");
+                                            break;
+                                        }
+                                    }
                                 }
                                 /////////////////////////////////////////////////////////////////////////////
                                 ///////////////     유저 고유 명령어  /////////////////////////////////////////
@@ -219,7 +229,7 @@ int main(int argc, char **argv)
                                     int client_idx = -1;
                                     //누가 이 명령어 썼냐, 쓴 클라이언트에게 부여하기 위한 검색 작업
                                     for(int k=0; k<num_active_children; k++){
-                                        if(active_children[k].pid == from_who){
+                                        if(strcmp(active_children[k].pid, from_who) == 0){
                                             client_idx = k;
                                             break;
                                         }
@@ -227,7 +237,7 @@ int main(int argc, char **argv)
 
                                     if(client_idx != -1){ //이 명령어를 쓴 유저에게 현재 채팅방의 유저를 알려준다. 
                                         for(int k=0; k<num_active_children; k++){
-                                            if(active_children[k].room_name == active_children[client_idx].room_name){
+                                            if(strcmp(active_children[k].room_name,active_children[client_idx].room_name) == 0){
                                                 size_t name_len = strnlen(active_children[k].name, sizeof(active_children[k].name));
                                                 ssize_t wlen = write(active_children[client_idx].parent_to_child_write_fd, active_children[k].name, name_len);
                                                 if ( wlen <= 0) { 
@@ -251,69 +261,71 @@ int main(int argc, char **argv)
                                 active_children[i].name[NAME - 1] = '\0';
                                 syslog(LOG_INFO, "Parent: Client %d set name to '%s'.", from_who, active_children[i].name);
                             }
-                            else if (content[0] == '!' && check_command(content, "whisper")){ //귓속말일때
-                                char *c = content + 2 + strlen("whisper");
-                                char user_name[BUFSIZ];
-                                char mesg[BUFSIZ];
-                                char origin[BUFSIZ]; // 원본 문자열을 보존하기 위한 복사본
-                                strcpy(origin, c); // '!whisper+ "공백" ' 건너뛰기
-                                //strtok는 원본을 훼손함
-                                char *token = strtok(origin, " "); // origin에서 첫번째 공백까지 잘라라
-                                if (token != NULL) {
-                                    strcpy(user_name, token);
-                                    // 나머지 부분을 메시지로 저장
-                                    token = strtok(NULL, ""); // 첫번째 공백까지 잘라진 나머지 부분을 가져와라
+                            else if (content[0] == '!'){ //귓속말일때
+                                if(check_command(content, "whisper"))
+                                {
+                                    char *c = content + 2 + strlen("whisper");
+                                    char user_name[BUFSIZ];
+                                    char mesg[BUFSIZ];
+                                    char origin[BUFSIZ]; // 원본 문자열을 보존하기 위한 복사본
+                                    strcpy(origin, c); // '!whisper+ "공백" ' 건너뛰기
+                                    //strtok는 원본을 훼손함
+                                    char *token = strtok(origin, " "); // origin에서 첫번째 공백까지 잘라라
                                     if (token != NULL) {
-                                        strcpy(mesg, token);
-                                    }else {
-                                        mesg[0] = '\0';
+                                        strcpy(user_name, token);
+                                        // 나머지 부분을 메시지로 저장
+                                        token = strtok(NULL, ""); // 첫번째 공백까지 잘라진 나머지 부분을 가져와라
+                                        if (token != NULL) {
+                                            strcpy(mesg, token);
+                                        }else {
+                                            mesg[0] = '\0';
+                                        }
                                     }
-                                }
-                                
-                                int client_idx = -1;
-                                //누가 이 명령어 썼냐, 쓴 클라이언트에게 부여하기 위한 검색 작업
-                                for(int k=0; k<num_active_children; k++){
-                                    if(active_children[k].pid == from_who){
-                                        client_idx = k;
-                                        break;
-                                    }
-                                }
-
-                                if(client_idx != -1){ //이 명령어를 쓴 유저가 귓속말 하려는 유저에게 write 
+                                    
+                                    int client_idx = -1;
+                                    //누가 이 명령어 썼냐, 쓴 클라이언트에게 부여하기 위한 검색 작업
                                     for(int k=0; k<num_active_children; k++){
-                                        if(strcmp(active_children[k].name, user_name) == 0){
-                                            
-                                            char final_message[BUFSIZ];
-                                            size_t name_len = strnlen(active_children[client_idx].name, NAME);
-                                            size_t mesg_len = strnlen(mesg, 1024);
-
-                                            // 적당한 최대 길이 설정 (예: final_message 크기 - 여유 공간)
-                                            size_t max_len = sizeof(final_message) - name_len - 10; // 10은 포맷 문자 여유
-
-                                            if (mesg_len > max_len) {
-                                                mesg_len = max_len;
-                                                mesg[mesg_len] = '\0'; // 문자열 자르기
-                                            }
-                                            snprintf(final_message, sizeof(final_message), "from %.*s : %.*s",
-                                                    (int)name_len, active_children[client_idx].name,
-                                                    (int)mesg_len, mesg);
-                                            ssize_t wlen = write(active_children[client_idx].parent_to_child_write_fd, final_message, name_len);
-                                            if ( wlen <= 0) { 
-                                                if (errno != EAGAIN && errno != EWOULDBLOCK) {
-                                                        //syslog(LOG_ERR, "Parent failed to broadcast to child %d: %m", active_children[j].pid);
-                                                }
-                                            }else if(wlen > 0){
-                                                if (kill(active_children[client_idx].pid, SIGUSR1) == -1) {
-                                                    syslog(LOG_ERR, "Parent: (whisper) Failed to send SIGUSR1 to child %d: %m", active_children[client_idx].pid);
-                                                } 
-                                            }
+                                        if(strcmp(active_children[k].pid, from_who) == 0){
+                                            client_idx = k;
                                             break;
                                         }
                                     }
-                                }else{
-                                    syslog(LOG_ERR, "this user no exist");
+
+                                    if(client_idx != -1){ //이 명령어를 쓴 유저가 귓속말 하려는 유저에게 write 
+                                        for(int k=0; k<num_active_children; k++){
+                                            if(strcmp(active_children[k].name, user_name) == 0){
+                                                
+                                                char final_message[BUFSIZ];
+                                                size_t name_len = strnlen(active_children[client_idx].name, NAME);
+                                                size_t mesg_len = strnlen(mesg, 1024);
+
+                                                // 적당한 최대 길이 설정 (예: final_message 크기 - 여유 공간)
+                                                size_t max_len = sizeof(final_message) - name_len - 10; // 10은 포맷 문자 여유
+
+                                                if (mesg_len > max_len) {
+                                                    mesg_len = max_len;
+                                                    mesg[mesg_len] = '\0'; // 문자열 자르기
+                                                }
+                                                snprintf(final_message, sizeof(final_message), "from %.*s : %.*s",
+                                                        (int)name_len, active_children[client_idx].name,
+                                                        (int)mesg_len, mesg);
+                                                ssize_t wlen = write(active_children[client_idx].parent_to_child_write_fd, final_message, name_len);
+                                                if ( wlen <= 0) { 
+                                                    if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                                                            //syslog(LOG_ERR, "Parent failed to broadcast to child %d: %m", active_children[j].pid);
+                                                    }
+                                                }else if(wlen > 0){
+                                                    if (kill(active_children[client_idx].pid, SIGUSR1) == -1) {
+                                                        syslog(LOG_ERR, "Parent: (whisper) Failed to send SIGUSR1 to child %d: %m", active_children[client_idx].pid);
+                                                    } 
+                                                }
+                                                break;
+                                            }
+                                        }
+                                    }else{
+                                        syslog(LOG_ERR, "this user no exist");
+                                    }
                                 }
-                                
                             }
                             else { 
                                 char broadcast_mesg[BUFSIZ + NAME + 10]; 
