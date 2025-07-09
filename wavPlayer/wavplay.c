@@ -23,7 +23,7 @@ int main(int argc, char** argv)
 	char *buffer;
 	int channels;
 	int format;
-	wavHeader wavHeader;
+	wavHeader wavheader;
 	snd_pcm_t *handle;
 	snd_pcm_hw_params_t *params;
 	snd_pcm_uframes_t frames;
@@ -56,8 +56,8 @@ int main(int argc, char** argv)
 	printf("Wave Channel Mode : %s\n", (channels)? "Stereo":"Mono");
 	snd_pcm_hw_params_set_channels(handle,params,channels);
 
-	printf("Wave Bytes : %d\n",wavHeader.nblockAlign);
-	switch (wavHeader.nblockAlign)
+	printf("Wave Bytes : %d\n",wavheader.nblockAlign);
+	switch (wavheader.nblockAlign)
 	{
 	case 1:
 		format = SND_PCM_FORMAT_U8;
@@ -76,8 +76,8 @@ int main(int argc, char** argv)
 	snd_pcm_hw_params_set_access(handle,params,SND_PCM_ACCESS_RW_INTERLEAVED);
 	snd_pcm_hw_params_set_format(handle,params,format);
 
-	printf("Wave Sampling Rate : 0x%d\n",wavHeader.sampleRate);
-	val = wavHeader.sampleRate;
+	printf("Wave Sampling Rate : 0x%d\n",wavheader.sampleRate);
+	val = wavheader.sampleRate;
 	snd_pcm_hw_params_set_rate_near(handle,params,&val,&dir);
 
 	frames = 32;
@@ -94,7 +94,7 @@ int main(int argc, char** argv)
 	buffer = (char*)malloc(buf_size);
 
 	snd_pcm_hw_params_get_period_time(params,&val,&dir);
-	remain = wavHeader.dataLen;
+	remain = wavheader.dataLen;
 
 	do {
 		buf_size = (remain > buf_size)?buf_size:remain;
