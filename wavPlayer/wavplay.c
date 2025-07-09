@@ -41,7 +41,7 @@ int main(int argc, char** argv)
 	}
 
 	// Read Head of wave file
-	if((count = read(fd, &wavheader, sizeof(WAVHEADER))) < 1) {
+	if((count = read(fd, &wavheader, sizeof(wavHeader))) < 1) {
 		printf("Could not read wave data\n");
 		goto END;
 	}
@@ -85,7 +85,7 @@ int main(int argc, char** argv)
 
 	rc = snd_pcm_hw_params(handle,params);
 	if(rc < 0){
-		fprintf(strerror, "Unable to set hw parameters : %s\n",snd_strerror(rc));
+		fprintf(stderr, "Unable to set hw parameters : %s\n",snd_strerror(rc));
 		goto END;
 	}
 
