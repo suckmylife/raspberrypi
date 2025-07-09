@@ -30,7 +30,7 @@ int main(int argc, char **argv)
     //시그널 등록
     setup_client_handler();
     //setup_chatroom_handler();
-    child_close_handler();
+    //child_close_handler();
 
     daemonize(argc, argv);                          //데몬화
     
