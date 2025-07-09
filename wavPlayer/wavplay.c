@@ -7,7 +7,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/soundcard.h>
-
+#include <alsa/asoundlib.h>
 #include "wavFile.h"
 
 #define	BUF_SIZE	1024
