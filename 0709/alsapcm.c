@@ -32,7 +32,7 @@ int main(int argc, char **argv)
     printf("MAKE SINE WAVE!!\n");
     for(i = 0; i < BUFSIZ; i++){
         t = (total/BUFSIZ) * i;
-        buf[i] = SHRT_MAX * sin((int)(2.0*M_PI*freq*t));
+        buf[i] = SHRT_MAX * sin((2.0*M_PI*freq*t));
     }
     frames = BUFSIZ / (MODE * BITS);
 
