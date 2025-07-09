@@ -3,7 +3,7 @@
 #include <math.h>
 #include <alsa/asoundlib.h>
 
-#define BITS 2*8
+#define BITS 2
 #define FRAGEMENT 8
 #define DURATION 5.0
 #define MODE 1
