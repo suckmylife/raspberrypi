@@ -6,7 +6,7 @@
 #define BITS 2
 #define FRAGEMENT 8
 #define DURATION 5.0
-#define MODE 2
+#define MODE 1
 #define FREQ 44100
 
 int setupDSP(snd_pcm_t *dev, int buf_size, int format, int sampleRate, int channels);
@@ -17,7 +17,9 @@ int main(int argc, char **argv)
     double total = DURATION, t;
     int freq = 440;
     int i, frames, count = 1;
-    char *snd_dev_out = "plughw:0,0";
+    //char *snd_dev_out = "plughw:0,0";
+    char *snd_dev_out = "default";
+
     short buf[BUFSIZ];
 
     if(snd_pcm_open(&playback_handle,snd_dev_out,SND_PCM_STREAM_PLAYBACK,0) < 0){
