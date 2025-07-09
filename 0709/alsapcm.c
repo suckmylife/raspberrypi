@@ -6,7 +6,7 @@
 #define BITS 2
 #define FRAGEMENT 8
 #define DURATION 5.0
-#define MODE 1
+#define MODE 2
 #define FREQ 44100
 
 int setupDSP(snd_pcm_t *dev, int buf_size, int format, int sampleRate, int channels);
