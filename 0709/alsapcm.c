@@ -17,8 +17,8 @@ int main(int argc, char **argv)
     double total = DURATION, t;
     int freq = 440;
     int i, frames, count = 1;
-    //char *snd_dev_out = "plughw:0,0";
-    char *snd_dev_out = "default";
+    char *snd_dev_out = "plughw:0,0";
+    //char *snd_dev_out = "default";
 
     short buf[BUFSIZ];
 
