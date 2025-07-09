@@ -9,7 +9,7 @@
 #include <sys/soundcard.h>
 
 #include "wavFile.h"
-WAVHEADER wavHeader;
+
 #define	BUF_SIZE	1024
 #define	AUDIO_DEV	"/dev/dsp"
 #define ALSA_PCM_NEW_HW_PARAMS_API
@@ -23,7 +23,7 @@ int main(int argc, char** argv)
 	char *buffer;
 	int channels;
 	int format;
-
+	wavHeader wavHeader;
 	snd_pcm_t *handle;
 	snd_pcm_hw_params_t *params;
 	snd_pcm_uframes_t frames;
