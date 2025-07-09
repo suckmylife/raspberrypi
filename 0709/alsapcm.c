@@ -120,10 +120,6 @@
 #define SAMPLES_PER_NOTE (int)(FREQ * NOTE_DURATION_SEC) // 한 음표당 샘플 수 (단일 채널 기준)
 #define BUFFER_SIZE_TOTAL_SAMPLES (SAMPLES_PER_NOTE * MODE) // 전체 버퍼의 총 샘플 수 (인터리브드)
 
-// --- 전역 버퍼 선언 ---
-// 이 버퍼는 한 음표의 오디오 데이터를 저장합니다.
-short audio_buffer[BUFFER_SIZE_TOTAL_SAMPLES];
-
 // --- 함수 프로토타입 ---
 // DSP (Digital Signal Processor) 설정을 위한 함수
 // dev: PCM 장치 핸들
@@ -140,6 +136,10 @@ int main(int argc, char **argv)
                                       // 'aplay -l' 명령으로 확인한 값입니다.
                                       // 만약 소리가 나지 않으면 "default"로 변경하여 시도해 볼 수 있습니다.
                                       // char *snd_dev_out = "default";
+
+    // --- 전역 버퍼 선언을 main 함수 내부로 이동하여 지역 변수로 선언 ---
+    // 이렇게 하면 VLA (Variable Length Array) 경고가 사라집니다.
+    short audio_buffer[BUFFER_SIZE_TOTAL_SAMPLES];
 
     // --- "Butterfly" 멜로디의 단순화된 음표 주파수 배열 (Hz) ---
     // 이 배열은 실제 노래의 일부 음표를 대략적으로 표현한 것입니다.
