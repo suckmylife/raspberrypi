@@ -3,11 +3,12 @@
 #include <math.h>
 #include <alsa/asoundlib.h>
 
-#define BITS 2
+#define BITS 2*8
 #define FRAGEMENT 8
 #define DURATION 5.0
 #define MODE 1
 #define FREQ 44100
+#define BUFSIZE (int)(BITS*FREQ*DURATION*MODE)
 
 int setupDSP(snd_pcm_t *dev, int buf_size, int format, int sampleRate, int channels);
 
@@ -20,23 +21,23 @@ int main(int argc, char **argv)
     char *snd_dev_out = "plughw:0,0";
     //char *snd_dev_out = "default";
 
-    short buf[BUFSIZ];
+    short buf[BUFSIZE];
 
     if(snd_pcm_open(&playback_handle,snd_dev_out,SND_PCM_STREAM_PLAYBACK,0) < 0){
         perror("Could not open output audio dev");
         return -1;
     }
-    if(setupDSP(playback_handle,BUFSIZ,SND_PCM_FORMAT_S16_LE, FREQ,MODE)<0){
+    if(setupDSP(playback_handle,BUFSIZE,SND_PCM_FORMAT_S16_LE, FREQ,MODE)<0){
         perror("Could not set output audio device");
         return -1;
     }
 
     printf("MAKE SINE WAVE!!\n");
-    for(i = 0; i < BUFSIZ; i++){
-        t = (total/BUFSIZ) * i;
+    for(i = 0; i < BUFSIZE; i++){
+        t = (total/BUFSIZE) * i;
         buf[i] = SHRT_MAX * sin((2.0*M_PI*freq*t));
     }
-    frames = BUFSIZ / (MODE * BITS);
+    frames = BUFSIZE / (MODE * BITS);
 
     while(count--){
         snd_pcm_prepare(playback_handle);
