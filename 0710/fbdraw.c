@@ -117,7 +117,7 @@ int main(int argc, char **argv)
     drawline(fbfd, 200,100,600,100,255,0,0);
     drawline(fbfd, 600,100,400,400,255,0,0);
     drawline(fbfd, 600,100,400,400,255,0,0);
-    drawline(fbfd, 400,400,570,360,255,0,0);
+    drawline(fbfd, 400,400,370,360,255,0,0);
     
     //drawface(fbfd, 0,100,100,300,0,0,255);
     // (100,200)에서 (300, 150)까지 초록색 선 그리기
