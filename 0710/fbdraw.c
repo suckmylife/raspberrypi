@@ -67,9 +67,12 @@ int main(int argc, char **argv)
         return -1;
     }
 #if 1
-    drawpoint(fbfd, 50, 50, makepixel(255, 0, 0));            /*  Red 점을 출력 */
-    drawpoint(fbfd, 100, 100, makepixel(0, 255, 0));        	/*  Green 점을 출력 */
-    drawpoint(fbfd, 150, 150, makepixel(0, 0, 255));        	/*  Blue 점을 출력 */
+    // drawpoint(fbfd, 50, 50, makepixel(255, 0, 0));            /*  Red 점을 출력 */
+    // drawpoint(fbfd, 100, 100, makepixel(0, 255, 0));        	/*  Green 점을 출력 */
+    // drawpoint(fbfd, 150, 150, makepixel(0, 0, 255));        	/*  Blue 점을 출력 */
+    drawpoint(fbfd, 50, 50, 255, 0, 0); 		/* 빨간색(Red) 점을 출력 */
+    drawpoint(fbfd, 100, 100, 0, 255, 0); 	/* 초록색(Green) 점을 출력 */
+    drawpoint(fbfd, 150, 150, 0, 0, 255); 	/* 파란색(Blue) 점을 출력 */
 #else
     drawpoint(fbfd, 50, 50, 255, 0, 0); 		/* 빨간색(Red) 점을 출력 */
     drawpoint(fbfd, 100, 100, 0, 255, 0); 	/* 초록색(Green) 점을 출력 */
