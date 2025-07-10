@@ -144,6 +144,30 @@ static void drawline(int fd, int x0, int y0, int x1, int y1, ubyte r, ubyte g, u
     }
 }
 
+static void drawcircle(int fd, int center_x, int center_y, int radius, ubyte r,ubyte g, ubyte b){
+    int x = radius, y = 0;
+    int radiusError = 1 - x;
+
+    while(x >= y){
+        drawpoint(fd, x+center_x, y + center_y, r, g, b);
+        drawpoint(fd, y+center_x, x + center_y, r, g, b);
+        drawpoint(fd, -x+center_x, y + center_y, r, g, b);
+        drawpoint(fd, -y+center_x, x + center_y, r, g, b);
+        drawpoint(fd, -x+center_x, -y + center_y, r, g, b);
+        drawpoint(fd, -y+center_x, -x + center_y, r, g, b);
+        drawpoint(fd, x+center_x, -y + center_y, r, g, b);
+        drawpoint(fd, y+center_x, -x + center_y, r, g, b);
+
+        y++;
+        if(radiusError < 0){
+            radiusError += 2 * y + 1;
+        }else{
+            x--;
+            radiusError += 2 * (y - x + 1);
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
     int fbfd;
@@ -159,11 +183,10 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    // (50,50)에서 (200, 100)까지 빨간색 선 그리기
-    drawline(fbfd, 50, 50, 200, 100, 255, 0, 0);
-
     // (100,200)에서 (300, 150)까지 초록색 선 그리기
     drawline(fbfd, 100, 200, 300, 150, 0, 255, 0);
+    //원그리기
+    drawcircle(fbfd, 200,200,100,255,0,255);
 
     close(fbfd);
 
