@@ -10,7 +10,7 @@ int main(int argc, char **argv)
 {
     int fbfd = 0;
     struct fb_var_screeninfo vinfo, old_vinfo;
-    sturct fb_fix_screeninfo finfo;
+    struct fb_fix_screeninfo finfo;
 
     fbfd = open(FBDVICE, O_RDWR);
     if(fbfd < 0){
