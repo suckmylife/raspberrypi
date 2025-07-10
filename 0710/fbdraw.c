@@ -84,7 +84,7 @@ static void drawface(int fd, int start_x,int start_y,int end_x,int end_y,ubyte r
     ubyte a = 0xFF;
     if(end_x == 0) end_x = vinfo.xres;
     if(end_y == 0) end_x = vinfo.yres;
-
+    unsigned short pixel_color = makepixel(r, g, b);
     for(int x = start_x; x < end_x; x++){
         for(int y = start_y; y<end_y; y++){
             int offset =  (x + y * vinfo.xres) * 2;
