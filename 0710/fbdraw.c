@@ -112,15 +112,20 @@ int main(int argc, char **argv)
     // drawface(fbfd, 0,0,0,0,255,255,255);
     // drawface(fbfd, 0,0,324,800,0,0,255);
     // drawface(fbfd, 700,0,1024,800,255,0,0);
-    //티원 로고
+    //티원 로고part1
     drawface(fbfd, 0,0,0,0,255,255,255);
     drawline(fbfd, 200,100,600,100,255,0,0);
     drawline(fbfd, 600,100,400,400,255,0,0);
     drawline(fbfd, 600,100,400,400,255,0,0);
     drawline(fbfd, 400,400,370,360,255,0,0);
     drawline(fbfd, 370,360,520,140,255,0,0);
-    
+    drawline(fbfd, 520,140,220,140,255,0,0);
+    drawline(fbfd, 220,140,200,100,255,0,0);
     //drawface(fbfd, 0,100,100,300,0,0,255);
+    //part2
+    drawline(fbfd, 250,165,470,165,255,0,0);
+    drawline(fbfd, 470,165,450,195,255,0,0);
+    drawline(fbfd, 450,195,,195,255,0,0);
     // (100,200)에서 (300, 150)까지 초록색 선 그리기
     //drawline(fbfd, 100, 200, 300, 150, 0, 255, 0);
     //원그리기
