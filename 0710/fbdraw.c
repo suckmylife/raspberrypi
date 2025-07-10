@@ -110,10 +110,10 @@ static void drawpoint(int fd, int x, int y, ubyte r, ubyte g, ubyte b)
 
     int offset = (x + y * vinfo.xres) * vinfo.bits_per_pixel / 8;
     lseek(fd, offset, SEEK_SET);
-    write(fd, &b, 1);
-    write(fd, &g, 1);
-    write(fd, &r, 1);
-    write(fd, &a, 1);
+    write(fd, &b, 2);
+    write(fd, &g, 2);
+    write(fd, &r, 2);
+    write(fd, &a, 2);
 }
 
 // 간단한 DDA 선 그리기 알고리즘
