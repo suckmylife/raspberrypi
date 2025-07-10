@@ -4,7 +4,7 @@
 #include <linux/fb.h>
 #include <sys/ioctl.h>
 #include <math.h> // roundf, fabs 함수를 위해 필요
-
+#include <sys/mman.h>
 #define FBDEVICE "/dev/fb0"
 
 typedef unsigned char ubyte;
@@ -94,6 +94,26 @@ static void drawface(int fd, int start_x,int start_y,int end_x,int end_y,ubyte r
     }
 }
 
+static void drawfacemmap(int fd, int start_x,int start_y,int end_x,int end_y,ubyte r,ubyte g, ubyte b){
+    //ubyte *pfb, a = 0xFF;
+    int color = vinfo.bits_per_pixel/8;
+    if(end_x == 0) end_x = vinfo.xres;
+    if(end_y == 0) end_y = vinfo.yres;
+    unsigned short *pfb = (unsigned short *)mmap(0,vinfo.xres * vinfo.yres * color, PROT_READ | PROT_WRITE,MAP_SHARED,fd,0);
+    // 16비트 픽셀 색상 생성
+    unsigned short pixel_color = makepixel(r, g, b);
+    for (int y = start_y; y < end_y; y++) {
+        for (int x = start_x; x < end_x; x++) {
+            // (x, y) 좌표에 해당하는 16비트 픽셀 포인터 계산
+            // pfb는 unsigned short 포인터이므로, vinfo.xres만큼 더하면 다음 행의 같은 x 위치로 이동
+            *(pfb + x + y * vinfo.xres) = pixel_color;
+        }
+    }
+
+    // 매핑된 메모리 해제
+    munmap(pfb, vinfo.xres * vinfo.yres * color);
+}
+
 int main(int argc, char **argv)
 {
     int fbfd;
@@ -112,33 +132,34 @@ int main(int argc, char **argv)
     // drawface(fbfd, 0,0,0,0,255,255,255);
     // drawface(fbfd, 0,0,324,800,0,0,255);
     // drawface(fbfd, 700,0,1024,800,255,0,0);
-    //티원 로고part1
-    drawface(fbfd, 0,0,0,0,255,255,255);
-    drawline(fbfd, 200,100,600,100,255,0,0);
-    drawline(fbfd, 600,100,400,400,255,0,0);
-    drawline(fbfd, 600,100,400,400,255,0,0);
-    drawline(fbfd, 400,400,370,360,255,0,0);
-    drawline(fbfd, 370,360,520,140,255,0,0);
-    drawline(fbfd, 520,140,220,140,255,0,0);
-    drawline(fbfd, 220,140,200,100,255,0,0);
-    //drawface(fbfd, 0,100,100,300,0,0,255);
-    //part2
-    drawline(fbfd, 250,165,470,165,255,0,0);
-    drawline(fbfd, 470,165,450,195,255,0,0);
-    drawline(fbfd, 450,195,270,195,255,0,0);
-    drawline(fbfd, 270,195,250,165,255,0,0);
-    //part3
-    drawline(fbfd, 290,220,440,220,255,0,0);
-    drawline(fbfd, 440,220,420,250,255,0,0);
-    drawline(fbfd, 420,250,310,250,255,0,0);
-    drawline(fbfd, 310,250,290,220,255,0,0);
-    //part4
-    drawline(fbfd, 330,250,290,220,255,0,0);
+    // //티원 로고part1
+    // drawface(fbfd, 0,0,0,0,255,255,255);
+    // drawline(fbfd, 200,100,600,100,255,0,0);
+    // drawline(fbfd, 600,100,400,400,255,0,0);
+    // drawline(fbfd, 600,100,400,400,255,0,0);
+    // drawline(fbfd, 400,400,370,360,255,0,0);
+    // drawline(fbfd, 370,360,520,140,255,0,0);
+    // drawline(fbfd, 520,140,220,140,255,0,0);
+    // drawline(fbfd, 220,140,200,100,255,0,0);
+    // //drawface(fbfd, 0,100,100,300,0,0,255);
+    // //part2
+    // drawline(fbfd, 250,165,470,165,255,0,0);
+    // drawline(fbfd, 470,165,450,195,255,0,0);
+    // drawline(fbfd, 450,195,270,195,255,0,0);
+    // drawline(fbfd, 270,195,250,165,255,0,0);
+    // //part3
+    // drawline(fbfd, 290,220,440,220,255,0,0);
+    // drawline(fbfd, 440,220,420,250,255,0,0);
+    // drawline(fbfd, 420,250,310,250,255,0,0);
+    // drawline(fbfd, 310,250,290,220,255,0,0);
+    // //part4
+    // drawline(fbfd, 330,250,290,220,255,0,0);
     // (100,200)에서 (300, 150)까지 초록색 선 그리기
     //drawline(fbfd, 100, 200, 300, 150, 0, 255, 0);
     //원그리기
     //drawcircle(fbfd, 200,200,100,255,0,255);
-    
+    //수정된 mmap
+    drawfacemmap(fbfd,0,0,0,0,255,255,0);
 
     close(fbfd);
 
