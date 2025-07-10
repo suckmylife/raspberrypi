@@ -125,7 +125,15 @@ int main(int argc, char **argv)
     //part2
     drawline(fbfd, 250,165,470,165,255,0,0);
     drawline(fbfd, 470,165,450,195,255,0,0);
-    drawline(fbfd, 450,195,,195,255,0,0);
+    drawline(fbfd, 450,195,270,195,255,0,0);
+    drawline(fbfd, 270,195,250,165,255,0,0);
+    //part3
+    drawline(fbfd, 290,220,440,220,255,0,0);
+    drawline(fbfd, 440,220,420,250,255,0,0);
+    drawline(fbfd, 420,250,310,250,255,0,0);
+    drawline(fbfd, 310,250,290,220,255,0,0);
+    //part4
+    drawline(fbfd, 330,250,290,220,255,0,0);
     // (100,200)에서 (300, 150)까지 초록색 선 그리기
     //drawline(fbfd, 100, 200, 300, 150, 0, 255, 0);
     //원그리기
