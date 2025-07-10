@@ -108,13 +108,13 @@ int main(int argc, char **argv)
         perror("Error reading fixed information");
         return -1;
     }
-
+    //면 그리기
+    drawface(fbfd, 0,10,10,10,255,255,0);
     // (100,200)에서 (300, 150)까지 초록색 선 그리기
     drawline(fbfd, 100, 200, 300, 150, 0, 255, 0);
     //원그리기
     drawcircle(fbfd, 200,200,100,255,0,255);
-    //면 그리기
-    drawface(fbfd, 0,0,0,0,255,255,0);
+    
 
     close(fbfd);
 
