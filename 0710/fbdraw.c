@@ -108,11 +108,14 @@ int main(int argc, char **argv)
         perror("Error reading fixed information");
         return -1;
     }
-    //면 그리기
+    //프랑스 국기
+    // drawface(fbfd, 0,0,0,0,255,255,255);
+    // drawface(fbfd, 0,0,324,800,0,0,255);
+    // drawface(fbfd, 700,0,1024,800,255,0,0);
+    //티원 로고
     drawface(fbfd, 0,0,0,0,255,255,255);
-    drawface(fbfd, 0,0,350,800,0,0,255);
+    drawline(fbfd, 200,100,600,100,0,0,255);
     
-    drawface(fbfd, 700,0,1024,800,255,0,0);
     //drawface(fbfd, 0,100,100,300,0,0,255);
     // (100,200)에서 (300, 150)까지 초록색 선 그리기
     //drawline(fbfd, 100, 200, 300, 150, 0, 255, 0);
