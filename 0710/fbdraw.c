@@ -13,14 +13,27 @@ unsigned short makepixel(unsigned char r, unsigned char g, unsigned char b) {
     return (unsigned short)(((r>>3)<<11)|((g>>2)<<5)|(b>>3));
 }
 #if 1
-static int drawpoint(int fd, int x, int y, unsigned short color)
-{
+// static int drawpoint(int fd, int x, int y, unsigned short color)
+// {
 
-    /* 색상 출력을 위한 위치 계산 : offset  = (X의_위치+Y의_위치x해상도의_넓이)x2  */
-    int offset = (x + y*vinfo.xres)*2;
+//     /* 색상 출력을 위한 위치 계산 : offset  = (X의_위치+Y의_위치x해상도의_넓이)x2  */
+//     int offset = (x + y*vinfo.xres)*2;
+//     lseek(fd, offset, SEEK_SET);
+//     write(fd, &color, 2);
+//     return 0;
+// }
+static void drawpoint(int fd, int x, int y, ubyte r, ubyte g, ubyte b)
+{
+    ubyte a = 0xFF;
+
+    /* 색상 출력을 위한 위치를 구한다. */
+    /* offset = (X의_위치 + Y의_위치 × 해상도의_넓이) × 색상의_바이트_수 */
+    int offset = (x + y*vinfo.xres)*vinfo.bits_per_pixel/8.; 
     lseek(fd, offset, SEEK_SET);
-    write(fd, &color, 2);
-    return 0;
+    write(fd, &b, 1);
+    write(fd, &g, 1);
+    write(fd, &r, 1);
+    write(fd, &a, 1);
 }
 #else
 /* 점을 그린다. */
