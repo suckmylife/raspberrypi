@@ -109,7 +109,7 @@ int main(int argc, char **argv)
         return -1;
     }
     //면 그리기
-    drawface(fbfd, 0,100,100,300,0,0,255);
+    //drawface(fbfd, 0,100,100,300,0,0,255);
     drawface(fbfd, 101,200,200,300,0,0,0);
     drawface(fbfd, 201,300,200,300,255,0,0);
     //drawface(fbfd, 0,100,100,300,0,0,255);
