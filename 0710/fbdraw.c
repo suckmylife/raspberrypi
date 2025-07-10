@@ -133,7 +133,7 @@ int main(int argc, char **argv)
     // drawface(fbfd, 0,0,324,800,0,0,255);
     // drawface(fbfd, 700,0,1024,800,255,0,0);
     // //티원 로고part1
-    drawface(fbfd, 0,0,0,0,255,255,255);
+    drawfacemmap(fbfd, 0,0,0,0,255,255,255);
     drawline(fbfd, 200,100,600,100,255,0,0);
     drawline(fbfd, 600,100,400,400,255,0,0);
     drawline(fbfd, 600,100,400,400,255,0,0);
@@ -155,7 +155,8 @@ int main(int argc, char **argv)
     // //part4
     drawline(fbfd, 330,275,410,275,255,0,0);
     drawline(fbfd, 410,275,390,305,255,0,0);
-    drawline(fbfd, 390,305,310,305,255,0,0);
+    drawline(fbfd, 390,305,350,305,255,0,0);
+    drawline(fbfd, 350,305,330,275,255,0,0);
     // (100,200)에서 (300, 150)까지 초록색 선 그리기
     //drawline(fbfd, 100, 200, 300, 150, 0, 255, 0);
     //원그리기
