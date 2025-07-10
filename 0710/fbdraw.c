@@ -22,15 +22,10 @@ static void drawpoint(int fd, int x, int y, ubyte r, ubyte g, ubyte b)
     if (x < 0 || x >= vinfo.xres || y < 0 || y >= vinfo.yres) {
         return;
     }
-
-    //int offset = (x + y * vinfo.xres) * vinfo.bits_per_pixel / 8;
     int offset = (x + y * vinfo.xres) * 2;
     unsigned short pixel_color = makepixel(r, g, b);
     lseek(fd, offset, SEEK_SET);
     write(fd, &pixel_color, 2);
-    // write(fd, &g, 2);
-    // write(fd, &r, 2);
-    // write(fd, &a, 2);
 }
 
 // 간단한 DDA 선 그리기 알고리즘
@@ -85,6 +80,20 @@ static void drawcircle(int fd, int center_x, int center_y, int radius, ubyte r,u
     }
 }
 
+static void drawface(int fd, int start_x,int start_y,int end_x,int end_y,ubyte r,ubyte g, ubyte b){
+    ubyte a = 0xFF;
+    if(end_x == 0) end_x = vinfo.xres;
+    if(end_y == 0) end_x = vinfo.yres;
+
+    for(int x = start_x; x < end_x; x++){
+        for(int y = start_y; y<end_y; y++){
+            int offset =  (x + y * vinfo.xres) * 2;
+            lseek(fd, offset, SEEK_SET);
+            write(fd, &pixel_color, 2);
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
     int fbfd;
@@ -104,6 +113,8 @@ int main(int argc, char **argv)
     drawline(fbfd, 100, 200, 300, 150, 0, 255, 0);
     //원그리기
     drawcircle(fbfd, 200,200,100,255,0,255);
+    //면 그리기
+    drawface(fbfd, 200,200,200,200,255,255,0);
 
     close(fbfd);
 
