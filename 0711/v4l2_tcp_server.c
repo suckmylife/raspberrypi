@@ -4,6 +4,12 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+#include <stdlib.h>
+#include <stdint.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <linux/fb.h>
+#include <linux/videodev2.h>
 #define TCP_PORT 5100
 #define VIDEO_DEVICE        "/dev/video0"
 #define FRAMEBUFFER_DEVICE  "/dev/fb0"
