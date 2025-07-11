@@ -143,18 +143,20 @@ int main(int argc, char **argv)
         // BMP 해상도를 기준으로 계산하고, 나중에 memcpy할 때 화면 해상도를 사용합니다.
         // 단, BMP 해상도와 프레임버퍼 해상도가 다르면 잘리거나 늘어날 수 있습니다.
         // 현재 로직은 BMP 데이터를 pBmpData에 BMP 해상도 그대로 채우는 방식입니다.
-        t = y * bmp_width; // unsigned short 단위 (픽셀 단위) 오프셋
+        t = y * fb_width; // unsigned short 단위 (픽셀 단위) 오프셋
         
         for(x = 0; x < bmp_width; x++) {
             // BMP 데이터 (pData)에서 B, G, R 값을 읽습니다. (BMP는 보통 BGR 순서)
+            if ((x >= 0 && x < fb_width) && (y >= 0 && y < fb_height)) {
             b = LIMIT_UBYTE(pData[k + x * (BMP_BPP / 8) + 0]); // Blue
             g = LIMIT_UBYTE(pData[k + x * (BMP_BPP / 8) + 1]); // Green
             r = LIMIT_UBYTE(pData[k + x * (BMP_BPP / 8) + 2]); // Red
 
             pixel = LIMIT_USHRT(makepixel(r, g, b));
             pBmpData[t + x] = pixel; // 16비트 픽셀을 pBmpData에 저장
-        };
-    };
+            }
+        }
+    }
 
     /* 앞에서 생성한 16비트 BMP 데이터 메모리맵된 메모리 공간으로 복사 */
     // 복사할 데이터의 크기는 프레임버퍼 해상도(fb_width, fb_height)를 기준으로 합니다.
