@@ -108,7 +108,7 @@ int main()
   }
 
   while (1) {
-    int ret = read(fd, buffer, fmt.fmt.pix.sizeimage);
+    int ret = read(fd, buffer, fmt.fmt.pix.sizeimage);//클라이언트에서 하고
     if (ret == -1) {
       perror("Failed to read frame");
       break;
@@ -116,7 +116,7 @@ int main()
 
     // buffer에 읽어온 프레임 데이터를 처리
     printf("Captured frame size: %d bytes\n", ret);
-    display_frame(fbp, buffer, WIDTH, HEIGHT);
+    display_frame(fbp, buffer, WIDTH, HEIGHT);//이거를 서버로 보내는 코드로 수정하면됨 
   }
 
   free(buffer);
