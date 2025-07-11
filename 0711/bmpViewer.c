@@ -142,8 +142,8 @@
 
 typedef unsigned char ubyte; // ubyte 정의
 
-#define FBDEVFILE            "/dev/fb0"
-#define BMP_BPP              24 // BMP 파일의 비트 심도를 명확히 24비트로 정의
+#define FBDEVFILE "/dev/fb0"
+#define BMP_BPP 24 // BMP 파일의 비트 심도를 명확히 24비트로 정의
 
 // LIMIT_USHRT, LIMIT_UBYTE 매크로는 n이 unsigned type이므로 음수 체크는 불필요하지만,
 // 안전을 위해 그대로 둡니다. 하지만 보통은 UCHAR_MAX/USHRT_MAX 초과 여부만 확인합니다.
