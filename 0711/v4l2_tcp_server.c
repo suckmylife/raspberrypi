@@ -95,18 +95,7 @@ int main(int argc, char **argv)
             perror("send() acknowledgment");
             return -1;
         }
-        // 서버 측 코드
-        int fb_fd = open(FRAMEBUFFER_DEVICE, O_RDWR); // fb_fd 선언 추가
-        if (fb_fd == -1) {
-            perror("Error opening framebuffer device");
-            exit(1);
-        }
-
-        if (ioctl(fb_fd, FBIOGET_VSCREENINFO, &vinfo)) {
-            perror("Error reading variable information");
-            close(fb_fd);
-            exit(1);
-        }
+        
         // 데이터 수신
         int received = 0;
         char *buffer = malloc(totalsize);  // 또는 충분한 크기로 할당된 배열
