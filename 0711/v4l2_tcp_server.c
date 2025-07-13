@@ -122,14 +122,12 @@ int main(int argc, char **argv)
         
         if ((intptr_t)fbp == -1) {
             perror("Error mapping framebuffer device to memory");
-            close(fb_fd);
             exit(1);
         }
 
         display_frame(fbp, buffer, WIDTH, HEIGHT);
         
     }while(strncmp(mesg,"q",1));
-    free(buffer);
     close(ssock);
     return 0;
 }
