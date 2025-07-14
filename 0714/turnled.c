@@ -44,4 +44,18 @@ int main(int argc, char **argv)
         printf("[ERROR] mmap() : %d \n",(int)gpio_map);
         perror -1;
     }
+
+    gpio = (volatile unsigned *)gpio_map;
+
+    GPIO_OUT(gno);
+    for(i = 0; i<5; i++){
+        GPIO_SET(gno);
+        sleep(1);
+        GPIO_CLR(gno);
+        sleep(1);
+    }
+
+    munmap(gpio_map,GPIO_SIZE);
+    close(mem_fd);
+    return 0;
 }
