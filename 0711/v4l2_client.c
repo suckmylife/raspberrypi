@@ -142,6 +142,12 @@
 #include <errno.h>  // EAGAIN, EWOULDBLOCK 오류 처리를 위한 헤더
 #include <sys/time.h>  // select() 함수 사용을 위한 헤더
 
+#include <stdint.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <linux/fb.h>
+#include <linux/videodev2.h>
+
 #define TCP_PORT 5100
 
 /* 비디오 */
