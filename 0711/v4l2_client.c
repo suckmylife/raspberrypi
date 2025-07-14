@@ -3,7 +3,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-
+#include <fcntl.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
