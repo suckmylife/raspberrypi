@@ -26,7 +26,7 @@ MODULE_DESCRIPTION("Rasberry Pi GPIO LED Device Module");
 #define GPIO_CLR(g) (*(gpio+10) = 1<<g) /* 설정된 비트 해제 */
 #define GPIO_GET(g) (*(gpio+13)&(1<<g)) /* 현재 GPIO의 비트에 대한 정보 획득 */
 
-#define GPIO_MAJOR 200;
+#define GPIO_MAJOR 200
 #define GPIO_MINOR 0
 #define GPIO_DEVICE "gpioled"
 #define GPIO_LED 18
