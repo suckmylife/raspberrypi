@@ -141,12 +141,17 @@ int main(int argc, char **argv)
             int to_receive = (totalsize - received > 4000) ? 4000 : (totalsize - received);
             
             int bytes = recv(csock, buffer + received, to_receive, 0);
-            if (bytes <= 0) {
-                perror("recv() buffer data");
-                free(buffer);
-                close(csock);
-                break;
+            if (bytes < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // 데이터가 아직 없음 - 이것은 오류가 아니라 정상적인 상황
+                printf("데이터가 아직 없습니다. 나중에 다시 시도합니다.\n");
+                // 여기서 짧은 시간 대기하거나 다른 작업을 수행할 수 있습니다.
+                usleep(1000); // 1ms 대기
+            } else {
+                // 실제 오류 발생
+                perror("recv() error");
             }
+}
             
             received += bytes;
             //printf("Received %d/%d bytes\n", received, totalsize);
