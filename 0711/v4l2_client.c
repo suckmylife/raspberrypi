@@ -24,6 +24,9 @@
 int main(int argc, char **argv)
 {
     int ssock;
+    int buffer_size = 1024 * 1024; // 1MB
+    setsockopt(ssock, SOL_SOCKET, SO_RCVBUF, (char *)&buffer_size, sizeof(buffer_size));
+    setsockopt(ssock, SOL_SOCKET, SO_SNDBUF, (char *)&buffer_size, sizeof(buffer_size));
     struct sockaddr_in servaddr, cliaddr;
     char mesg[BUFSIZ];
 
