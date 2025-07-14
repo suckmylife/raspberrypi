@@ -111,6 +111,9 @@ int main(int argc, char **argv)
             perror("accept");
             continue;
         }
+        // 서버 코드에서
+        int flags = fcntl(csock, F_GETFL, 0);
+        fcntl(csock, F_SETFL, flags | O_NONBLOCK);
         inet_ntop(AF_INET, &cliaddr.sin_addr,mesg,BUFSIZ);
         printf("Client is connected : %s\n",mesg);
 

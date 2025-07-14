@@ -50,7 +50,9 @@ int main(int argc, char **argv)
         perror("connect()");
         return -1;
     }
-
+    // 클라이언트 코드에서
+    int flags = fcntl(ssock, F_GETFL, 0);
+    fcntl(ssock, F_SETFL, flags | O_NONBLOCK);
     //fgets(mesg,BUFSIZ,stdin);
     ////////////////////////////////////////////////////
     int fd = open(VIDEO_DEVICE, O_RDWR);
