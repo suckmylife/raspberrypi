@@ -133,7 +133,7 @@ int main(int argc, char **argv)
             
             // select()를 사용하여 데이터가 도착할 때까지 효율적으로 대기
             int activity = select(csock + 1, &readfds, NULL, NULL, &tv);
-            prinf("after acitivity 136");
+            printf("after acitivity 136");
             if (activity < 0) {
                 perror("select()");
                 break;
