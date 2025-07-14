@@ -16,10 +16,14 @@
 #define TCP_PORT 5100
 #define WIDTH 640
 #define HEIGHT 480
-#define FRAMEBUFFER_DEVICE "/dev/fb0"
+
+//서버는 카메라에 접근할 필요가 없으므로
+//프레임 버퍼에만 접근 클라이언트가 서버한테 프레임 버퍼에 데이터를 보낼테니까!
+#define FRAMEBUFFER_DEVICE "/dev/fb0" 
 
 static struct fb_var_screeninfo vinfo;
 
+//교수님 코드 복사><
 void display_frame(uint16_t *fbp, uint8_t *data, int width, int height) 
 {
   int x_offset = (vinfo.xres - width) / 2;
@@ -59,6 +63,7 @@ int main(int argc, char **argv)
     char mesg[BUFSIZ];
     
     // 프레임버퍼 초기화
+    // 클라이언트에서 준 데이터 받을 그릇 세팅
     int fb_fd = open(FRAMEBUFFER_DEVICE, O_RDWR);
     if (fb_fd == -1) {
         perror("Error opening framebuffer device");
@@ -80,6 +85,7 @@ int main(int argc, char **argv)
         close(fb_fd);
         exit(1);
     }
+    //세팅 끝!
 
     if((ssock = socket(AF_INET,SOCK_STREAM, 0))<0){
         perror("socket()");
@@ -110,10 +116,16 @@ int main(int argc, char **argv)
             perror("accept");
             continue;
         }
+        //클라이언트와 마찬가지로 
+        // 소켓 크기가 작아서 데이터를 못 받을 수도 있으니까
+        // 혹시 몰라서 추가한 코드
         int buffer_size = 1024 * 1024; // 1MB
         setsockopt(csock, SOL_SOCKET, SO_RCVBUF, (char *)&buffer_size, sizeof(buffer_size));
         setsockopt(csock, SOL_SOCKET, SO_SNDBUF, (char *)&buffer_size, sizeof(buffer_size));
-        // 서버 코드에서
+        //클라이언트와 통신하는 소켓 논블록킹
+        //일단 계속 받아야 하니까 멈추면 안되니까!
+        // 사실 클라이언트 한개면 안해도 되는데 
+        // 나는 다른 클라이언트를 추가할 예정이라 필요하게 되었다..
         int flags = fcntl(csock, F_GETFL, 0);
         fcntl(csock, F_SETFL, flags | O_NONBLOCK);
         inet_ntop(AF_INET, &cliaddr.sin_addr,mesg,BUFSIZ);
@@ -129,7 +141,8 @@ int main(int argc, char **argv)
             FD_ZERO(&readfds);
             FD_SET(csock, &readfds);
             
-            // select()를 사용하여 데이터가 도착할 때까지 효율적으로 대기
+            // select()를 사용하여 클라이언트에서
+            // 데이터가 도착할 때까지 효율적으로 대기
             int activity = select(csock + 1, &readfds, NULL, NULL, &tv);
             printf("after acitivity 136");
             if (activity < 0) {
@@ -141,7 +154,9 @@ int main(int argc, char **argv)
                 continue;
             }
             printf("confirm activity 145");
-            // 이제 데이터가 있으므로 recv() 호출
+            // select에서 클라이언트에서 응답이 왔다고 했으니까 recv() 호출
+            // 여기가 바로 클라이언트에서 
+            // 서버님 데이터 크기가 요따만한거 굴러가요~ 라고 보낸거
             int recv_result;
             while ((recv_result = recv(csock, &totalsize, sizeof(totalsize), 0)) < 0) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -163,14 +178,14 @@ int main(int argc, char **argv)
             
             printf("Expected to receive: %d bytes\n", totalsize);
             
-            // 데이터 수신을 위한 버퍼 할당
+            // 카메라 프레임 데이터 수신을 위한 버퍼 할당
             char *buffer = (char*)malloc(totalsize);
             if (!buffer) {
                 perror("malloc() failed");
                 break;
             }
             
-            // 프레임 데이터 수신
+            // 카메라 프레임 데이터 수신
             int received = 0;
             while (received < totalsize) {
                 
@@ -179,7 +194,7 @@ int main(int argc, char **argv)
                 FD_SET(csock, &readfds);
                 tv.tv_sec = 2;  // 2초 타임아웃
                 tv.tv_usec = 0;
-                
+                //여기서부터 이제 진짜 프레임 버퍼가 오기 시작함
                 activity = select(csock + 1, &readfds, NULL, NULL, &tv);
                 
                 if (activity <= 0) {
@@ -193,7 +208,7 @@ int main(int argc, char **argv)
                 
                 // 적절한 청크 크기로 수신
                 int to_receive = (totalsize - received > 4000) ? 4000 : (totalsize - received);
-                
+                //select에서 데이터 왔다고 알려주면 recv하기 시작
                 int bytes = recv(csock, buffer + received, to_receive, 0);
                 if (bytes < 0) {
                     if (errno == EAGAIN || errno == EWOULDBLOCK) {
