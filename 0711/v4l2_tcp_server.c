@@ -55,7 +55,10 @@ int main(int argc, char **argv)
     socklen_t clen;
     struct sockaddr_in servaddr, cliaddr;
     char mesg[BUFSIZ];
-
+    // 클라이언트와 서버 모두에 적용
+    int buffer_size = 1024 * 1024; // 1MB
+    setsockopt(ssock, SOL_SOCKET, SO_RCVBUF, (char *)&buffer_size, sizeof(buffer_size));
+    setsockopt(ssock, SOL_SOCKET, SO_SNDBUF, (char *)&buffer_size, sizeof(buffer_size));
     // 프레임버퍼 초기화
     int fb_fd = open(FRAMEBUFFER_DEVICE, O_RDWR);
     if (fb_fd == -1) {
@@ -101,6 +104,9 @@ int main(int argc, char **argv)
 
     clen = sizeof(cliaddr);
     int csock;
+    int buffer_size = 1024 * 1024; // 1MB
+    setsockopt(csock, SOL_SOCKET, SO_RCVBUF, (char *)&buffer_size, sizeof(buffer_size));
+    setsockopt(csock, SOL_SOCKET, SO_SNDBUF, (char *)&buffer_size, sizeof(buffer_size));
     while(1)
     {
         csock = accept(ssock,(struct sockaddr *)&cliaddr,&clen);
