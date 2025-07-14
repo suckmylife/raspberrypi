@@ -11,8 +11,6 @@
 #include <linux/fb.h>
 #include <linux/videodev2.h>
 #define TCP_PORT 5100
-#define VIDEO_DEVICE        "/dev/video0"
-#define FRAMEBUFFER_DEVICE  "/dev/fb0"
 #define WIDTH               640
 #define HEIGHT              480
 
@@ -126,7 +124,7 @@ int main(int argc, char **argv)
             perror("malloc() processed_frame_output_buffer");
             free(buffer);
             close(csock);
-            return;
+            return -1;
         }
         printf("Buffer allocated for processed frame output: %d bytes\n", WIDTH * HEIGHT * sizeof(uint16_t));
 
