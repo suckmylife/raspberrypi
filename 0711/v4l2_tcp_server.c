@@ -110,44 +110,66 @@ int main(int argc, char **argv)
         inet_ntop(AF_INET, &cliaddr.sin_addr,mesg,BUFSIZ);
         printf("Client is connected : %s\n",mesg);
 
-        // 서버 측 코드 예시
+        // 서버 측 코드 수정안
         int totalsize;
         if (recv(csock, &totalsize, sizeof(totalsize), 0) <= 0) {
             perror("recv() totalsize");
-            return -1;
+            close(csock);
+            continue;  // 오류 시 다음 클라이언트 대기
         }
+        printf("Expected to receive: %d bytes\n", totalsize);
 
         // 클라이언트에게 응답 보내기
         int ack = 1;
         if (send(csock, &ack, sizeof(ack), 0) <= 0) {
             perror("send() acknowledgment");
-            return -1;
+            close(csock);
+            continue;
         }
-        
+
+        // 데이터 수신을 위한 버퍼 할당
+        char *buffer = (char*)malloc(totalsize);
+        if (!buffer) {
+            perror("malloc() failed");
+            close(csock);
+            continue;
+        }
+
         // 데이터 수신
         int received = 0;
-        char *buffer = (char*)malloc(totalsize);  // 또는 충분한 크기로 할당된 배열
-        
         while (received < totalsize) {
-            int bytes = recv(csock, buffer + received, totalsize - received, 0);
+            // 적절한 청크 크기로 수신 (8KB 또는 남은 데이터 크기)
+            int to_receive = (totalsize - received > 8192) ? 8192 : (totalsize - received);
+            
+            int bytes = recv(csock, buffer + received, to_receive, 0);
             if (bytes <= 0) {
                 perror("recv() buffer data");
                 free(buffer);
-                return -1;
+                close(csock);
+                break;
             }
             
             received += bytes;
+            printf("Received %d/%d bytes\n", received, totalsize);
             
             // 현재까지 읽은 위치를 클라이언트에게 알림
             if (send(csock, &received, sizeof(received), 0) <= 0) {
                 perror("send() read position");
-                return -1;
+                free(buffer);
+                close(csock);
+                break;
             }
         }
 
-        // 실제 프레임버퍼에 직접 출력
-        display_frame(fbp, (uint8_t *)buffer, WIDTH, HEIGHT);
-        printf("Frame displayed on framebuffer successfully.\n");
+        // 모든 데이터를 성공적으로 받았는지 확인
+        if (received == totalsize) {
+            // 실제 프레임버퍼에 직접 출력
+            display_frame(fbp, (uint8_t *)buffer, WIDTH, HEIGHT);
+            printf("Frame displayed on framebuffer successfully.\n");
+        }
+        else {
+            printf("Failed to receive complete frame data (%d/%d bytes)\n", received, totalsize);
+        }
 
         // 할당된 메모리 해제
         free(buffer);

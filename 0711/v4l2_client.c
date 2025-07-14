@@ -16,11 +16,9 @@
 
 /* 비디오 */
 #define VIDEO_DEVICE        "/dev/video0"
-#define FRAMEBUFFER_DEVICE  "/dev/fb0"
 #define WIDTH               640
 #define HEIGHT              480
 
-static struct fb_var_screeninfo vinfo;
 /* 비디오 */
 
 int main(int argc, char **argv)
@@ -50,7 +48,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    fgets(mesg,BUFSIZ,stdin);
+    //fgets(mesg,BUFSIZ,stdin);
     ////////////////////////////////////////////////////
     int fd = open(VIDEO_DEVICE, O_RDWR);
     if (fd == -1) {
@@ -77,61 +75,58 @@ int main(int argc, char **argv)
         close(fd);
         return 1;
     }
-
-    int fb_fd = open(FRAMEBUFFER_DEVICE, O_RDWR);
-    if (fb_fd == -1) {
-        perror("Error opening framebuffer device");
-        exit(1);
-    }
-
-    if (ioctl(fb_fd, FBIOGET_VSCREENINFO, &vinfo)) {
-        perror("Error reading variable information");
-        close(fb_fd);
-        exit(1);
-    }
-
-    uint32_t fb_width = vinfo.xres;
-    uint32_t fb_height = vinfo.yres;
-    uint32_t screensize = fb_width * fb_height * vinfo.bits_per_pixel / 8;
-    uint16_t *fbp = mmap(0, screensize, PROT_READ | PROT_WRITE,                                         MAP_SHARED, fb_fd, 0);
-    if ((intptr_t)fbp == -1) {
-        perror("Error mapping framebuffer device to memory");
-        close(fb_fd);
-        exit(1);
-    }
     
     while (1) {
-        int totalsize = read(fd, buffer, fmt.fmt.pix.sizeimage);//클라이언트에서 하고
-        if (totalsize == -1) {
+        int totalsize = read(fd, buffer, fmt.fmt.pix.sizeimage);
+        if (totalsize <= 0) {
             perror("Failed to read frame");
             break;
         }
-        printf("totalsize : %d\n",totalsize);
-        //총 사이즈 보내기 
-        if(send(ssock,&totalsize,sizeof(totalsize),0) <= 0){
-                perror("send()");
-                return -1;
-            }
-        int server_read;
-        if(recv(ssock,&server_read,sizeof(server_read),0)<=0){
-            perror("recv");
-            return -1;
+        printf("totalsize : %d\n", totalsize);
+        
+        // 총 사이즈 보내기
+        if (send(ssock, &totalsize, sizeof(totalsize), 0) <= 0) {
+            perror("send()");
+            break;
         }
-        //버퍼 전송
+        
+        int server_read;
+        if (recv(ssock, &server_read, sizeof(server_read), 0) <= 0) {
+            perror("recv");
+            break;
+        }
+        
+        // 버퍼 전송
         int sent = 0;
-        while(sent < totalsize){
-            int chunk_size = totalsize - sent;
-            if(send(ssock, buffer + sent, chunk_size, 0) <= 0){
+        while (sent < totalsize) {
+            // 적절한 청크 크기 설정 (예: 8KB)
+            int chunk_size = (totalsize - sent > 8192) ? 8192 : (totalsize - sent);
+            
+            int bytes_sent = send(ssock, buffer + sent, chunk_size, 0);
+            if (bytes_sent <= 0) {
                 perror("send() buffer chunk");
-                return -1;
+                break;
             }
-
+            
+            sent += bytes_sent;
+            
+            // 서버에 현재 위치 알림
+            if (send(ssock, &sent, sizeof(sent), 0) <= 0) {
+                perror("send() current position");
+                break;
+            }
+            
+            // 서버 응답 확인 (선택적)
             int server_response;
-            if(recv(ssock, &server_response, sizeof(server_response),0) <= 0){
+            if (recv(ssock, &server_response, sizeof(server_response), 0) <= 0) {
                 perror("recv() server read position");
-                return -1;
+                break;
             }
-            sent = server_response;
+        }
+
+        // 전송 실패 시 루프 종료
+        if (sent < totalsize) {
+            break;
         }
     }
     ////////////////////////////////////////////////////
