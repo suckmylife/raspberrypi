@@ -110,8 +110,6 @@ int main(int argc, char **argv)
             perror("accept");
             continue;
         }
-
-         int csock;
         int buffer_size = 1024 * 1024; // 1MB
         setsockopt(csock, SOL_SOCKET, SO_RCVBUF, (char *)&buffer_size, sizeof(buffer_size));
         setsockopt(csock, SOL_SOCKET, SO_SNDBUF, (char *)&buffer_size, sizeof(buffer_size));
