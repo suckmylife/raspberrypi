@@ -249,7 +249,7 @@ int main(int argc, char **argv)
             
             // 다음 프레임을 기다리기 위해 내부 루프의 처음으로 돌아감
         }
-    
+    }
 end_client_session:
     // 클라이언트 소켓 닫기
     close(csock);
