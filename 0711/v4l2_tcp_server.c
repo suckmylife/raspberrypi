@@ -3,16 +3,18 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-
+#include <fcntl.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <linux/fb.h>
 #include <linux/videodev2.h>
+
 #define TCP_PORT 5100
 #define WIDTH               640
 #define HEIGHT              480
+#define FRAMEBUFFER_DEVICE  "/dev/fb0"
 
 static struct fb_var_screeninfo vinfo;
 
@@ -53,6 +55,29 @@ int main(int argc, char **argv)
     socklen_t clen;
     struct sockaddr_in servaddr, cliaddr;
     char mesg[BUFSIZ];
+
+    // 프레임버퍼 초기화
+    int fb_fd = open(FRAMEBUFFER_DEVICE, O_RDWR);
+    if (fb_fd == -1) {
+        perror("Error opening framebuffer device");
+        exit(1);
+    }
+
+    if (ioctl(fb_fd, FBIOGET_VSCREENINFO, &vinfo)) {
+        perror("Error reading variable information");
+        close(fb_fd);
+        exit(1);
+    }
+
+    uint32_t fb_width = vinfo.xres;
+    uint32_t fb_height = vinfo.yres;
+    uint32_t screensize = fb_width * fb_height * vinfo.bits_per_pixel / 8;
+    uint16_t *fbp = mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fb_fd, 0);
+    if ((intptr_t)fbp == -1) {
+        perror("Error mapping framebuffer device to memory");
+        close(fb_fd);
+        exit(1);
+    }
 
     if((ssock = socket(AF_INET,SOCK_STREAM, 0))<0){
         perror("socket()");
@@ -119,33 +144,13 @@ int main(int argc, char **argv)
                 return -1;
             }
         }
-        uint16_t *processed_frame_output_buffer = (uint16_t *)malloc(WIDTH * HEIGHT * sizeof(uint16_t));
-        if (processed_frame_output_buffer == NULL) {
-            perror("malloc() processed_frame_output_buffer");
-            free(buffer);
-            close(csock);
-            return -1;
-        }
-        printf("Buffer allocated for processed frame output: %d bytes\n", WIDTH * HEIGHT * sizeof(uint16_t));
 
-        // 6. display_frame 함수 호출
-        // received_frame_data_buffer를 uint8_t*로 캐스팅하여 'data' 인자로 전달합니다.
-        // processed_frame_output_buffer를 'fbp' 인자로 전달합니다.
-        display_frame(processed_frame_output_buffer, (uint8_t *)buffer, WIDTH, HEIGHT);
-        printf("display_frame function called successfully. Processed data is in 'processed_frame_output_buffer'.\n");
+        // 실제 프레임버퍼에 직접 출력
+        display_frame(fbp, (uint8_t *)buffer, WIDTH, HEIGHT);
+        printf("Frame displayed on framebuffer successfully.\n");
 
-        // 7. 처리된 프레임 데이터 활용 (서버의 다음 로직)
-        // 'processed_frame_output_buffer'에는 이제 display_frame 함수를 통해 변환된
-        // uint16_t 형식의 픽셀 데이터가 들어 있습니다. 이 데이터를 어떻게 활용할지는
-        // 서버의 목적에 따라 달라집니다.
-        // 예시:
-        // - 이 데이터를 다시 압축하여 다른 클라이언트에게 스트리밍
-        // - 이 데이터를 파일로 저장
-        // - 서버 내부에서 이미지 처리 또는 분석에 활용
-
-        // 8. 할당된 메모리 해제
+        // 할당된 메모리 해제
         free(buffer);
-        free(processed_frame_output_buffer);
         printf("Memory freed.\n");
 
         // 클라이언트 소켓 닫기
@@ -153,7 +158,9 @@ int main(int argc, char **argv)
         printf("Client disconnected.\n");
     }
     
+    // 프로그램 종료 시 리소스 정리
+    munmap(fbp, screensize);
+    close(fb_fd);
     
-   
     return 0;
 }
