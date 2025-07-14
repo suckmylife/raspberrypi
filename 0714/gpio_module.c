@@ -121,7 +121,8 @@ ssize_t gpio_write(struct file *fil, const char *buff, size_t len, loff_t *off)
     memset(msg,0,BLOCK_SIZE);
     count = copy_from_user(msg,buff,len);
     (!strcmp(msg,"0")) ? GPIO_CLR(GPIO_LED):GPIO_SET(GPIO_LED);
-    printk("GPIO DEVICE(%d) write : %s(%d)\n",MAJOR(fil->f_path.dentry->d_inode->i_rdev),msg,len);
+    printk("GPIO DEVICE(%d) write : %s(%d)\n",
+        MAJOR(inode->f_path.dentry->d_inode->i_rdev),msg,len);
 
     return count;
 }
