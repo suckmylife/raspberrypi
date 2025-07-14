@@ -102,7 +102,7 @@ int main(int argc, char **argv)
     }
 
     clen = sizeof(cliaddr);
-   
+    int csock;
     while(1)
     {
         csock = accept(ssock,(struct sockaddr *)&cliaddr,&clen);
