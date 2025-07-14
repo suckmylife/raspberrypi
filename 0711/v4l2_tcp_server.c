@@ -135,7 +135,7 @@ int main(int argc, char **argv)
         int received = 0;
         while (received < totalsize) {
             // 적절한 청크 크기로 수신 (8KB 또는 남은 데이터 크기)
-            int to_receive = (totalsize - received > 8192) ? 8192 : (totalsize - received);
+            int to_receive = (totalsize - received > 4000) ? 4000 : (totalsize - received);
             
             int bytes = recv(csock, buffer + received, to_receive, 0);
             if (bytes <= 0) {

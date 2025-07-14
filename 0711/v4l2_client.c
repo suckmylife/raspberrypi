@@ -97,7 +97,7 @@ int main(int argc, char **argv)
         int sent = 0;
         while (sent < totalsize) {
             // 적절한 청크 크기 설정 (예: 8KB)
-            int chunk_size = (totalsize - sent > 8192) ? 8192 : (totalsize - sent);
+            int chunk_size = (totalsize - sent > 4000) ? 4000 : (totalsize - sent);
             
             int bytes_sent = send(ssock, buffer + sent, chunk_size, 0);
             if (bytes_sent <= 0) {
