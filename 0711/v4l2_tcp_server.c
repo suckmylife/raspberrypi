@@ -143,7 +143,7 @@ int main(int argc, char **argv)
             }
             
             received += bytes;
-            printf("Received %d/%d bytes\n", received, totalsize);
+            //printf("Received %d/%d bytes\n", received, totalsize);
         }
 
         // 모든 데이터를 성공적으로 받았는지 확인
