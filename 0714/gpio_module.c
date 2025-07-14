@@ -49,7 +49,7 @@ static struct file_operations gpio_fops = {
 
 struct cdev gpio_cdev;
 
-int main(int argc, char **argv)
+int init_module(void)
 {
     dev_t devno;
     unsigned int count;
@@ -99,13 +99,13 @@ void cleanup_module(void){
     printk(KERN_INFO,"Good bye led module\n");
 }
 
-int gpio_open(struct inode *inod, struct file *fil)
+static int gpio_open(struct inode *inod, struct file *fil)
 {
     printk("GPIO DEVICE opened(%d/%d)\n",imajor(inod),iminor(inod));
     return 0;
 }
 
-ssize_t gpio_read(struct file *inode, char *buff, size_t len, loff_t *off)
+static ssize_t gpio_read(struct file *inode, char *buff, size_t len, loff_t *off)
 {
     int count;
     strcat(msg, "from kernel");
@@ -116,7 +116,7 @@ ssize_t gpio_read(struct file *inode, char *buff, size_t len, loff_t *off)
     return count;
 }
 
-ssize_t gpio_write(struct file *inode, const char *buff, size_t len, loff_t *off)
+static ssize_t gpio_write(struct file *inode, const char *buff, size_t len, loff_t *off)
 {
     short count;
     memset(msg,0,BLOCK_SIZE);
@@ -128,7 +128,7 @@ ssize_t gpio_write(struct file *inode, const char *buff, size_t len, loff_t *off
     return count;
 }
 
-int gpio_close(struct inode *inod, struct file *fil)
+static int gpio_close(struct inode *inod, struct file *fil)
 {
     printk("GPIO DEVICE closed(%d)\n",MAJOR(fil->f_path.dentry->d_inode->i_rdev));
     return 0;
