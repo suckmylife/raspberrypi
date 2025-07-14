@@ -12,7 +12,7 @@
 #include <linux/videodev2.h>
 #include <errno.h>  // EAGAIN, EWOULDBLOCK 오류 처리를 위한 헤더
 #include <sys/time.h>  // select() 함수 사용을 위한 헤더
-
+#include <sys/select.h>
 #define TCP_PORT 5100
 #define WIDTH 640
 #define HEIGHT 480
