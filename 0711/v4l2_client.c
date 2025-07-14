@@ -144,6 +144,14 @@
 
 #define TCP_PORT 5100
 
+/* 비디오 */
+#define VIDEO_DEVICE        "/dev/video0"
+#define WIDTH               640
+#define HEIGHT              480
+
+/* 비디오 */
+
+
 int main(int argc, char **argv) {
     int ssock;
     struct sockaddr_in servaddr;
@@ -176,7 +184,34 @@ int main(int argc, char **argv) {
     fcntl(ssock, F_SETFL, flags | O_NONBLOCK);
     
     // 프레임 전송 루프
+     ////////////////////////////////////////////////////
+    int fd = open(VIDEO_DEVICE, O_RDWR);
+    if (fd == -1) {
+        perror("Failed to open video device");
+        return 1;
+    }
+
+    struct v4l2_format fmt;
+    fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    fmt.fmt.pix.width = WIDTH;
+    fmt.fmt.pix.height = HEIGHT;
+    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+    fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;
+
+    if (ioctl(fd, VIDIOC_S_FMT, &fmt) == -1) {
+        perror("Failed to set format");
+        close(fd);
+        return 1;
+    }
+
+    char *buffer = malloc(fmt.fmt.pix.sizeimage);
+    if (!buffer) {
+        perror("Failed to allocate buffer");
+        close(fd);
+        return 1;
+    }
     while (1) {
+
         int totalsize = read(fd, buffer, fmt.fmt.pix.sizeimage);  // 클라이언트에서 프레임 읽기
         if (totalsize <= 0) {
             perror("Failed to read frame");
