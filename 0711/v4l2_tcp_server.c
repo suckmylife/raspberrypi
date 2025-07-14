@@ -133,7 +133,7 @@ int main(int argc, char **argv)
             
             // select()를 사용하여 데이터가 도착할 때까지 효율적으로 대기
             int activity = select(csock + 1, &readfds, NULL, NULL, &tv);
-            
+            prinf("after acitivity 136");
             if (activity < 0) {
                 perror("select()");
                 break;
@@ -142,7 +142,7 @@ int main(int argc, char **argv)
                 printf("Timeout waiting for client data\n");
                 continue;
             }
-            
+            prinf("confirm activity 145");
             // 이제 데이터가 있으므로 recv() 호출
             int recv_result;
             while ((recv_result = recv(csock, &totalsize, sizeof(totalsize), 0)) < 0) {
