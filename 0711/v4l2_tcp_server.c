@@ -10,11 +10,13 @@
 #include <sys/mman.h>
 #include <linux/fb.h>
 #include <linux/videodev2.h>
+#include <errno.h>  // EAGAIN, EWOULDBLOCK 오류 처리를 위한 헤더
+#include <sys/time.h>  // select() 함수 사용을 위한 헤더
 
 #define TCP_PORT 5100
-#define WIDTH               640
-#define HEIGHT              480
-#define FRAMEBUFFER_DEVICE  "/dev/fb0"
+#define WIDTH 640
+#define HEIGHT 480
+#define FRAMEBUFFER_DEVICE "/dev/fb0"
 
 static struct fb_var_screeninfo vinfo;
 
@@ -100,10 +102,7 @@ int main(int argc, char **argv)
     }
 
     clen = sizeof(cliaddr);
-    int csock;
-    int buffer_size = 1024 * 1024; // 1MB
-    setsockopt(csock, SOL_SOCKET, SO_RCVBUF, (char *)&buffer_size, sizeof(buffer_size));
-    setsockopt(csock, SOL_SOCKET, SO_SNDBUF, (char *)&buffer_size, sizeof(buffer_size));
+   
     while(1)
     {
         csock = accept(ssock,(struct sockaddr *)&cliaddr,&clen);
@@ -111,80 +110,149 @@ int main(int argc, char **argv)
             perror("accept");
             continue;
         }
+
+         int csock;
+        int buffer_size = 1024 * 1024; // 1MB
+        setsockopt(csock, SOL_SOCKET, SO_RCVBUF, (char *)&buffer_size, sizeof(buffer_size));
+        setsockopt(csock, SOL_SOCKET, SO_SNDBUF, (char *)&buffer_size, sizeof(buffer_size));
         // 서버 코드에서
         int flags = fcntl(csock, F_GETFL, 0);
         fcntl(csock, F_SETFL, flags | O_NONBLOCK);
         inet_ntop(AF_INET, &cliaddr.sin_addr,mesg,BUFSIZ);
         printf("Client is connected : %s\n",mesg);
 
-        // 서버 측 코드 수정안
-        int totalsize = 0;
-        if (recv(csock, &totalsize, sizeof(totalsize), 0) <= 0) {
-            perror("recv() totalsize");
-            close(csock);
-            continue;  // 오류 시 다음 클라이언트 대기
-        }
-        printf("Expected to receive: %d bytes\n", totalsize);
-
-        // 데이터 수신을 위한 버퍼 할당
-        char *buffer = (char*)malloc(totalsize);
-        if (!buffer) {
-            perror("malloc() failed");
-            close(csock);
-            continue;
-        }
-
-        // 데이터 수신
-        int received = 0;
-        while (received < totalsize) {
-            // 적절한 청크 크기로 수신 (8KB 또는 남은 데이터 크기)
-            int to_receive = (totalsize - received > 4000) ? 4000 : (totalsize - received);
+        while (1) {
+            int totalsize = 0;
+            fd_set readfds;
+            struct timeval tv;
+            tv.tv_sec = 5;  // 5초 타임아웃
+            tv.tv_usec = 0;
             
-            int bytes = recv(csock, buffer + received, to_receive, 0);
-            if (bytes < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                // 데이터가 아직 없음 - 이것은 오류가 아니라 정상적인 상황
-                printf("데이터가 아직 없습니다. 나중에 다시 시도합니다.\n");
-                // 여기서 짧은 시간 대기하거나 다른 작업을 수행할 수 있습니다.
-                usleep(1000); // 1ms 대기
+            FD_ZERO(&readfds);
+            FD_SET(csock, &readfds);
+            
+            // select()를 사용하여 데이터가 도착할 때까지 효율적으로 대기
+            int activity = select(csock + 1, &readfds, NULL, NULL, &tv);
+            
+            if (activity < 0) {
+                perror("select()");
+                break;
+            } else if (activity == 0) {
+                // 타임아웃 발생
+                printf("Timeout waiting for client data\n");
+                continue;
+            }
+            
+            // 이제 데이터가 있으므로 recv() 호출
+            int recv_result;
+            while ((recv_result = recv(csock, &totalsize, sizeof(totalsize), 0)) < 0) {
+                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    // 데이터가 아직 없음, 잠시 대기
+                    usleep(1000);  // 1ms 대기
+                    continue;
+                } else {
+                    // 실제 오류 발생
+                    perror("recv() totalsize");
+                    goto end_client_session;
+                }
+            }
+            
+            if (recv_result == 0) {
+                // 클라이언트가 연결을 종료함
+                printf("Client disconnected\n");
+                break;
+            }
+            
+            printf("Expected to receive: %d bytes\n", totalsize);
+            
+            // 데이터 수신을 위한 버퍼 할당
+            char *buffer = (char*)malloc(totalsize);
+            if (!buffer) {
+                perror("malloc() failed");
+                break;
+            }
+            
+            // 프레임 데이터 수신
+            int received = 0;
+            while (received < totalsize) {
+                
+                // select()를 사용하여 데이터가 도착할 때까지 효율적으로 대기
+                FD_ZERO(&readfds);
+                FD_SET(csock, &readfds);
+                tv.tv_sec = 2;  // 2초 타임아웃
+                tv.tv_usec = 0;
+                
+                activity = select(csock + 1, &readfds, NULL, NULL, &tv);
+                
+                if (activity <= 0) {
+                    if (activity < 0) {
+                        perror("select() during data reception");
+                    } else {
+                        printf("Timeout waiting for frame data\n");
+                    }
+                    break;
+                }
+                
+                // 적절한 청크 크기로 수신
+                int to_receive = (totalsize - received > 4000) ? 4000 : (totalsize - received);
+                
+                int bytes = recv(csock, buffer + received, to_receive, 0);
+                if (bytes < 0) {
+                    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                        // 데이터가 아직 없음, 잠시 대기
+                        usleep(1000);  // 1ms 대기
+                        continue;
+                    } else {
+                        // 실제 오류 발생
+                        perror("recv() buffer data");
+                        free(buffer);
+                        goto end_client_session;
+                    }
+                } else if (bytes == 0) {
+                    // 클라이언트가 연결을 종료함
+                    printf("Client disconnected during data transfer\n");
+                    free(buffer);
+                    goto end_client_session;
+                }
+                
+                received += bytes;
+            }
+            
+            // 모든 데이터를 성공적으로 받았는지 확인
+            if (received == totalsize) {
+                // 실제 프레임버퍼에 직접 출력
+                display_frame(fbp, (uint8_t *)buffer, WIDTH, HEIGHT);
+                printf("Frame displayed on framebuffer successfully.\n");
+                
+                // 클라이언트에게 최종 완료 응답 보내기 (성공: 1)
+                int final_ack = 1;
+                if (send(csock, &final_ack, sizeof(final_ack), 0) <= 0) {
+                    perror("send() final ack");
+                    free(buffer);
+                    goto end_client_session;
+                }
             } else {
-                // 실제 오류 발생
-                perror("recv() error");
+                printf("Failed to receive complete frame data (%d/%d bytes)\n", received, totalsize);
+                
+                // 클라이언트에게 최종 완료 응답 보내기 (실패: 0)
+                int final_ack = 0;
+                if (send(csock, &final_ack, sizeof(final_ack), 0) <= 0) {
+                    perror("send() final ack (error)");
+                    free(buffer);
+                    goto end_client_session;
+                }
             }
-}
             
-            received += bytes;
-            //printf("Received %d/%d bytes\n", received, totalsize);
+            // 할당된 메모리 해제
+            free(buffer);
+            printf("Memory freed for this frame.\n");
+            
+            // 다음 프레임을 기다리기 위해 내부 루프의 처음으로 돌아감
         }
-
-        // 모든 데이터를 성공적으로 받았는지 확인
-        if (received == totalsize) {
-            // 실제 프레임버퍼에 직접 출력
-            display_frame(fbp, (uint8_t *)buffer, WIDTH, HEIGHT);
-            printf("Frame displayed on framebuffer successfully.\n");
-            // 클라이언트에게 최종 완료 응답 보내기 (성공: 1)
-            int final_ack = 1;
-            if (send(csock, &final_ack, sizeof(final_ack), 0) <= 0) {
-                perror("send() final ack");
-                return -1;
-            }
-        }
-        else {
-            printf("Failed to receive complete frame data (%d/%d bytes)\n", received, totalsize);
-        }
-
-        // 할당된 메모리 해제
-        free(buffer);
-        printf("Memory freed.\n");
-
-        
-    }
+    
+end_client_session:
     // 클라이언트 소켓 닫기
     close(csock);
     printf("Client disconnected.\n");
-    // 프로그램 종료 시 리소스 정리
-    munmap(fbp, screensize);
-    close(fb_fd);
-    
-    return 0;
+    // 다음 클라이언트 연결을 기다리기 위해 외부 루프의 처음으로 돌아감
 }
