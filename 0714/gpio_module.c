@@ -56,7 +56,7 @@ int init_module(void)
     static void *map;
     int err;
 
-    printk(KERN_INFO, "Hello LED Module!\n");
+    printk(KERN_INFO "Hello LED Module!\n");
 
     try_module_get(THIS_MODULE);
 
@@ -96,7 +96,7 @@ void cleanup_module(void){
         iounmap(gpio);
     }
     module_put(THIS_MODULE);
-    printk(KERN_INFO,"Good bye led module\n");
+    printk(KERN_INFO "Good bye led module\n");
 }
 
 static int gpio_open(struct inode *inod, struct file *fil)
@@ -122,7 +122,7 @@ static ssize_t gpio_write(struct file *inode, const char *buff, size_t len, loff
     memset(msg,0,BLOCK_SIZE);
     count = copy_from_user(msg,buff,len);
     (!strcmp(msg,"0")) ? GPIO_CLR(GPIO_LED):GPIO_SET(GPIO_LED);
-    printk("GPIO DEVICE(%d) write : %s(%d)\n",
+    printk("GPIO DEVICE(%d) write : %s(%zd)\n",
         MAJOR(inode->f_path.dentry->d_inode->i_rdev),msg,len);
 
     return count;
