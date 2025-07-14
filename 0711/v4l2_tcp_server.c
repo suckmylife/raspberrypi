@@ -77,11 +77,16 @@ int main(int argc, char **argv)
     }
 
     clen = sizeof(cliaddr);
-    do{
-        int n, csock = accept(ssock,(struct sockaddr *)&cliaddr,&clen);
-
+    while(1)
+    {
+        int csock = accept(ssock,(struct sockaddr *)&cliaddr,&clen);
+        if (csock < 0) {
+            perror("accept");
+            continue;
+        }
         inet_ntop(AF_INET, &cliaddr.sin_addr,mesg,BUFSIZ);
         printf("Client is connected : %s\n",mesg);
+
         // 서버 측 코드 예시
         int totalsize;
         if (recv(csock, &totalsize, sizeof(totalsize), 0) <= 0) {
@@ -98,7 +103,8 @@ int main(int argc, char **argv)
         
         // 데이터 수신
         int received = 0;
-        char *buffer = malloc(totalsize);  // 또는 충분한 크기로 할당된 배열
+        char *buffer = (char*)malloc(totalsize);  // 또는 충분한 크기로 할당된 배열
+        
         while (received < totalsize) {
             int bytes = recv(csock, buffer + received, totalsize - received, 0);
             if (bytes <= 0) {
@@ -115,19 +121,41 @@ int main(int argc, char **argv)
                 return -1;
             }
         }
-        uint32_t fb_width = vinfo.xres;
-        uint32_t fb_height = vinfo.yres;
-        uint32_t screensize = fb_width * fb_height * vinfo.bits_per_pixel / 8;
-        uint16_t *fbp = mmap(0, screensize, PROT_READ | PROT_WRITE,                                         MAP_SHARED, fb_fd, 0);
-        
-        if ((intptr_t)fbp == -1) {
-            perror("Error mapping framebuffer device to memory");
-            exit(1);
+        uint16_t *processed_frame_output_buffer = (uint16_t *)malloc(WIDTH * HEIGHT * sizeof(uint16_t));
+        if (processed_frame_output_buffer == NULL) {
+            perror("malloc() processed_frame_output_buffer");
+            free(buffer);
+            close(csock);
+            return;
         }
+        printf("Buffer allocated for processed frame output: %d bytes\n", WIDTH * HEIGHT * sizeof(uint16_t));
 
-        display_frame(fbp, buffer, WIDTH, HEIGHT);
-        
-    }while(strncmp(mesg,"q",1));
-    close(ssock);
+        // 6. display_frame 함수 호출
+        // received_frame_data_buffer를 uint8_t*로 캐스팅하여 'data' 인자로 전달합니다.
+        // processed_frame_output_buffer를 'fbp' 인자로 전달합니다.
+        display_frame(processed_frame_output_buffer, (uint8_t *)buffer, WIDTH, HEIGHT);
+        printf("display_frame function called successfully. Processed data is in 'processed_frame_output_buffer'.\n");
+
+        // 7. 처리된 프레임 데이터 활용 (서버의 다음 로직)
+        // 'processed_frame_output_buffer'에는 이제 display_frame 함수를 통해 변환된
+        // uint16_t 형식의 픽셀 데이터가 들어 있습니다. 이 데이터를 어떻게 활용할지는
+        // 서버의 목적에 따라 달라집니다.
+        // 예시:
+        // - 이 데이터를 다시 압축하여 다른 클라이언트에게 스트리밍
+        // - 이 데이터를 파일로 저장
+        // - 서버 내부에서 이미지 처리 또는 분석에 활용
+
+        // 8. 할당된 메모리 해제
+        free(buffer);
+        free(processed_frame_output_buffer);
+        printf("Memory freed.\n");
+
+        // 클라이언트 소켓 닫기
+        close(csock);
+        printf("Client disconnected.\n");
+    }
+    
+    
+   
     return 0;
 }
