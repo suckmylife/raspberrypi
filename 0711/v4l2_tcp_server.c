@@ -142,7 +142,7 @@ int main(int argc, char **argv)
                 printf("Timeout waiting for client data\n");
                 continue;
             }
-            prinf("confirm activity 145");
+            printf("confirm activity 145");
             // 이제 데이터가 있으므로 recv() 호출
             int recv_result;
             while ((recv_result = recv(csock, &totalsize, sizeof(totalsize), 0)) < 0) {
