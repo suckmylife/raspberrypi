@@ -110,12 +110,13 @@ ssize_t gpio_read(struct file *inode, char *buff, size_t len, loff_t *off)
     int count;
     strcat(msg, "from kernel");
     count = copy_to_user(buff,msg,strlen(msg)+1);
-    printk("GPIO DEVICE(%d) read : %s(%d)\n",MAJOR(fil->f_path.dentry->d_inode->i_rdev),msg,count);
+    printk("GPIO DEVICE(%d) read : %s(%d)\n",
+        MAJOR(inode->f_path.dentry->d_inode->i_rdev),msg,count);
 
     return count;
 }
 
-ssize_t gpio_write(struct file *fil, const char *buff, size_t len, loff_t *off)
+ssize_t gpio_write(struct file *inode, const char *buff, size_t len, loff_t *off)
 {
     short count;
     memset(msg,0,BLOCK_SIZE);
