@@ -90,12 +90,6 @@ int main(int argc, char **argv)
             break;
         }
         
-        int server_read;
-        if (recv(ssock, &server_read, sizeof(server_read), 0) <= 0) {
-            perror("recv");
-            break;
-        }
-        
         // 버퍼 전송
         int sent = 0;
         while (sent < totalsize) {
@@ -109,23 +103,20 @@ int main(int argc, char **argv)
             }
             
             sent += bytes_sent;
-            
-            // 서버에 현재 위치 알림
-            if (send(ssock, &sent, sizeof(sent), 0) <= 0) {
-                perror("send() current position");
-                break;
-            }
-            
-            // 서버 응답 확인 (선택적)
-            int server_response;
-            if (recv(ssock, &server_response, sizeof(server_response), 0) <= 0) {
-                perror("recv() server read position");
-                break;
-            }
         }
 
-        // 전송 실패 시 루프 종료
-        if (sent < totalsize) {
+        // 3. 모든 데이터 전송 후, 서버로부터 최종 완료 응답을 기다립니다.
+        int final_server_response;
+        if (recv(ssock, &final_server_response, sizeof(final_server_response), 0) <= 0) {
+            perror("recv() final server response");
+            break;
+        }
+
+        // 서버가 모든 데이터를 성공적으로 받았음을 확인 (예: 1을 보냈을 경우)
+        if (final_server_response == 1) {
+            printf("Frame sent successfully and confirmed by server.\n");
+        } else {
+            fprintf(stderr, "Server did not confirm successful reception.\n");
             break;
         }
     }

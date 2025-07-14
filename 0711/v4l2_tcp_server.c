@@ -100,9 +100,10 @@ int main(int argc, char **argv)
     }
 
     clen = sizeof(cliaddr);
+    int csock;
     while(1)
     {
-        int csock = accept(ssock,(struct sockaddr *)&cliaddr,&clen);
+        csock = accept(ssock,(struct sockaddr *)&cliaddr,&clen);
         if (csock < 0) {
             perror("accept");
             continue;
@@ -111,21 +112,13 @@ int main(int argc, char **argv)
         printf("Client is connected : %s\n",mesg);
 
         // 서버 측 코드 수정안
-        int totalsize;
+        int totalsize = 0;
         if (recv(csock, &totalsize, sizeof(totalsize), 0) <= 0) {
             perror("recv() totalsize");
             close(csock);
             continue;  // 오류 시 다음 클라이언트 대기
         }
         printf("Expected to receive: %d bytes\n", totalsize);
-
-        // 클라이언트에게 응답 보내기
-        int ack = 1;
-        if (send(csock, &ack, sizeof(ack), 0) <= 0) {
-            perror("send() acknowledgment");
-            close(csock);
-            continue;
-        }
 
         // 데이터 수신을 위한 버퍼 할당
         char *buffer = (char*)malloc(totalsize);
@@ -151,14 +144,6 @@ int main(int argc, char **argv)
             
             received += bytes;
             printf("Received %d/%d bytes\n", received, totalsize);
-            
-            // 현재까지 읽은 위치를 클라이언트에게 알림
-            if (send(csock, &received, sizeof(received), 0) <= 0) {
-                perror("send() read position");
-                free(buffer);
-                close(csock);
-                break;
-            }
         }
 
         // 모든 데이터를 성공적으로 받았는지 확인
@@ -166,6 +151,12 @@ int main(int argc, char **argv)
             // 실제 프레임버퍼에 직접 출력
             display_frame(fbp, (uint8_t *)buffer, WIDTH, HEIGHT);
             printf("Frame displayed on framebuffer successfully.\n");
+            // 클라이언트에게 최종 완료 응답 보내기 (성공: 1)
+            int final_ack = 1;
+            if (send(csock, &final_ack, sizeof(final_ack), 0) <= 0) {
+                perror("send() final ack");
+                return -1;
+            }
         }
         else {
             printf("Failed to receive complete frame data (%d/%d bytes)\n", received, totalsize);
@@ -175,11 +166,11 @@ int main(int argc, char **argv)
         free(buffer);
         printf("Memory freed.\n");
 
-        // 클라이언트 소켓 닫기
-        close(csock);
-        printf("Client disconnected.\n");
+        
     }
-    
+    // 클라이언트 소켓 닫기
+    close(csock);
+    printf("Client disconnected.\n");
     // 프로그램 종료 시 리소스 정리
     munmap(fbp, screensize);
     close(fb_fd);
