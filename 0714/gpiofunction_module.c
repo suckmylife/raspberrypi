@@ -3,6 +3,7 @@
 #include <linux/module.h>
 #include <linux/io.h>
 #include <linux/uaccess.h>
+#include <linux/gpio.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("SYL");
