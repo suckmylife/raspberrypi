@@ -56,7 +56,7 @@ int init_module(void)
     //static void *map;
     int err;
 
-    printk(KERN_INFO "Hello LED Module!\n");
+    printk(KERN_INFO "New LED Module!\n");
 
     try_module_get(THIS_MODULE);
 
