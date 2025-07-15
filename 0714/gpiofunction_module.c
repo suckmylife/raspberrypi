@@ -78,7 +78,7 @@ int init_module(void)
     printk("'chmod 666 /dev/%s'\n", GPIO_DEVICE);
 
     gpio_request(GPIO_LED,"LED");
-    gpio_direction_output(GPIO_LED,0);
+    //gpio_direction_output(GPIO_LED,0);
     // map = ioremap(GPIO_BASE, GPIO_SIZE);
     // if(!map){
     //     printk("Error : mapping GPIO memory \n");
