@@ -104,7 +104,7 @@ static ssize_t gpio_write(struct file* inode, const char* buff, size_t len, loff
 	count = copy_from_user(msg,buff,len);
 
 	gpio_set_value(GPIO_LED,(!strcmp(msg,"0"))?0:1);
-	printk("gpio %d write %s(%d)\n",MAJOR(inode->f_path.dentry->d_inode->i_rdev),msg,len);
+	printk("gpio %d write %s(%zd)\n",MAJOR(inode->f_path.dentry->d_inode->i_rdev),msg,len);
 
 	return count;
 }
