@@ -24,7 +24,26 @@
 
 // 데이터 타입 정의 (서버와 동일하게 0으로 정의)
 #define VIDEO_TYPE 0
+// send()를 반복 호출하여 정확히 len 바이트를 모두 보내는 함수
+int send_all(int sock, const void *buffer, size_t len) {
+    size_t total_sent = 0;
+    const char *buf = (const char *)buffer;
 
+    while (total_sent < len) {
+        ssize_t sent = send(sock, buf + total_sent, len - total_sent, 0);
+        if (sent < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                usleep(1000); // 1ms 대기 후 재시도
+                continue;
+            } else {
+                perror("send() error");
+                return -1;
+            }
+        }
+        total_sent += sent;
+    }
+    return 0;
+}
 int main(int argc, char **argv) {
     int ssock;
     struct sockaddr_in servaddr;
@@ -100,67 +119,30 @@ int main(int argc, char **argv) {
     while (1) {
         //담았다! 1프레임!
         int totalsize = read(fd, buffer, fmt.fmt.pix.sizeimage);  // 클라이언트에서 프레임 읽기
-        uint32_t net_totalsize = htonl(totalsize);
-        if (net_totalsize <= 0) {
+        if (totalsize <= 0) {
             perror("Failed to read frame");
             break;
         }
-        printf("net_totalsize : %d\n", net_totalsize);
+        printf("totalsize : %d\n", totalsize);
         
-        // 새로 추가된 부분: 데이터 타입 전송 (1바이트)
-        char data_type = VIDEO_TYPE;
-        int send_type_result;
-        while ((send_type_result = send(ssock, &data_type, sizeof(data_type), 0)) < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                usleep(1000);
-                continue;
-            } else {
-                perror("send() data type");
-                goto cleanup;
-            }
+        // 1. 데이터 타입 전송 (1바이트)
+        if (send_all(ssock, &data_type, sizeof(data_type)) < 0) {
+            fprintf(stderr, "Failed to send data type\n");
+            break;
         }
 
-        // 1. 총 사이즈 보내기
-        // : 뜻 --> 서버 선생님 제가 이만큼 보낼거니까 준비하셔요
-        int send_result;
-        while ((send_result = send(ssock, &net_totalsize, sizeof(net_totalsize), 0)) < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                // 송신 버퍼가 가득 찼을 때 잠시 대기
-                usleep(1000);  // 1ms 대기
-                continue;
-            } else {
-                // 실제 오류 발생
-                perror("send() net_totalsize");
-                goto cleanup;
-            }
+        // 2. 데이터 크기 전송 (4바이트)
+        if (send_all(ssock, &totalsize, sizeof(totalsize)) < 0) {
+            fprintf(stderr, "Failed to send totalsize\n");
+            break;
+        }
+
+        // 3. 실제 데이터 전송
+        if (send_all(ssock, buffer, totalsize) < 0) {
+            fprintf(stderr, "Failed to send frame data\n");
+            break;
         }
         
-        // 2. 버퍼 전송 (위에서 논블록킹 해준 효과 : 서버 응답을 기다리지 않고 연속적으로 전송)
-        // : 뜻 --> 지금부터 데이터 진짜 보내요 갑니다~
-        // 버퍼가 왜 쪼개져서 갈까? :TCP가 알아서 쪼개서 보내준다고 합니다
-        int sent = 0;
-        //자 이제 다보낼때까지(sent가 totalsize될때까지) 와다다 쪼개서 보냅니다~
-        while (sent < net_totalsize) {
-            //이 청크사이즈는
-            //만약 쪼개서 보낼때 8kb보다 커지면 부하오니까 8kb넘지않게 보내라는 뜻
-            int chunk_size = (net_totalsize - sent > 8192) ? 8192 : (net_totalsize - sent);
-            
-            int bytes_sent;
-            while ((bytes_sent = send(ssock, buffer + sent, chunk_size, 0)) < 0) {
-                if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                    // 송신 버퍼가 가득 찼을 때 잠시 대기
-                    // 서버에서 못받고 허덕이고 있으면 대기해라
-                    usleep(1000);  // 1ms 대기
-                    continue;
-                } else {
-                    // 실제 오류 발생
-                    perror("send() buffer chunk");
-                    goto cleanup;
-                }
-            }
-            
-            sent += bytes_sent;
-        }
         
         // 3. 서버로부터 최종 완료 응답을 기다림
         int final_server_response;

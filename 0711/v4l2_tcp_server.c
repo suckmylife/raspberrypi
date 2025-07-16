@@ -66,6 +66,31 @@ void display_frame(uint16_t *fbp_ptr, uint8_t *data, int width, int height)
   }
 }
 
+// 정확히 len 바이트를 모두 받을 때까지 반복하는 함수
+int recv_all(int sock, void *buffer, size_t len) {
+    size_t total = 0;
+    char *buf = (char *)buffer;
+    while (total < len) {
+        ssize_t n = recv(sock, buf + total, len - total, 0);
+        if (n < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // 데이터가 아직 도착하지 않음, 잠시 대기
+                usleep(1000);
+                continue;
+            } else {
+                perror("recv() error");
+                return -1;
+            }
+        } else if (n == 0) {
+            // 연결 종료
+            printf("Client disconnected during recv_all\n");
+            return -1;
+        }
+        total += n;
+    }
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     int ssock;
@@ -169,7 +194,7 @@ int main(int argc, char **argv)
 
         while (1) {
             char data_type; // 데이터 타입을 저장할 변수 (1바이트)
-            uint32_t net_totalsize;
+            int totalsize = 0; // 클라이언트가 보낼 데이터의 총 크기
             fd_set readfds;
             struct timeval tv;
             tv.tv_sec = 5;  // 5초 타임아웃
@@ -190,7 +215,7 @@ int main(int argc, char **argv)
             }
 
             // 1. 데이터 타입 (1바이트) 수신
-            int recv_result_type = recv(csock, &data_type, sizeof(data_type), 0);
+            int recv_result_type = recv_all(csock, &data_type, sizeof(data_type), 0);
             if (recv_result_type <= 0) {
                 if (recv_result_type < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
                     usleep(1000); continue;
@@ -199,16 +224,18 @@ int main(int argc, char **argv)
                 break; // 클라이언트 연결 종료
             }
 
+            // 1. 데이터 타입 (1바이트) 수신
+            if (recv_all(csock, &data_type, sizeof(data_type)) < 0) { // 마지막 0 인자 제거
+                printf("Client disconnected or error during type reception\n");
+                break; // 클라이언트 연결 종료
+            }
+
             // 2. 데이터 크기 (4바이트) 수신
-            int recv_result_size = recv(csock, &net_totalsize, sizeof(net_totalsize), 0);
-            if (recv_result_size <= 0) {
-                if (recv_result_size < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-                    usleep(1000); continue;
-                }
+            if (recv_all(csock, &totalsize, sizeof(totalsize)) < 0) { // 마지막 0 인자 제거
                 printf("Client disconnected or error during size reception\n");
                 break; // 클라이언트 연결 종료
             }
-            uint32_t totalsize = ntohl(net_totalsize);
+
             printf("Received data type: %d, expected size: %d bytes\n", data_type, totalsize);
 
             // 데이터 수신을 위한 버퍼 할당
@@ -218,43 +245,11 @@ int main(int argc, char **argv)
                 break;
             }
 
-            // 실제 데이터 수신
-            int received = 0;
-            while (received < totalsize) {
-                FD_ZERO(&readfds);
-                FD_SET(csock, &readfds);
-                tv.tv_sec = 2;  // 2초 타임아웃
-                tv.tv_usec = 0;
-
-                activity = select(csock + 1, &readfds, NULL, NULL, &tv);
-
-                if (activity <= 0) {
-                    if (activity < 0) {
-                        perror("select() during data reception");
-                    } else {
-                        printf("Timeout waiting for data\n");
-                    }
-                    free(buffer);
-                    goto end_client_session;
-                }
-
-                int to_receive = totalsize - received;
-                int bytes = recv(csock, buffer + received, to_receive, 0);
-                if (bytes < 0) {
-                    if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                        usleep(1000); continue;
-                    } else {
-                        perror("recv() buffer data");
-                        free(buffer);
-                        goto end_client_session;
-                    }
-                } else if (bytes == 0) {
-                    printf("Client disconnected during data transfer\n");
-                    free(buffer);
-                    goto end_client_session;
-                }
-
-                received += bytes;
+            // 3. 실제 데이터 본문 수신
+            if (recv_all(csock, buffer, totalsize) < 0) {
+                perror("recv() buffer data failed"); // 에러 메시지 명확히 수정
+                free(buffer);
+                goto end_client_session;
             }
 
             // 모든 데이터를 성공적으로 받았는지 확인
