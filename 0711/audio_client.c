@@ -33,7 +33,7 @@ int send_all(int sock, const void *buffer, size_t len) {
 
 #define SAMPLE_RATE 44100
 #define CHANNELS    2
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 12288 
 
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 5100
@@ -55,21 +55,22 @@ void *capture_and_send(void *data) {
   char data_type = AUDIO_TYPE;
 
   while (1) {
+    //총 음성 버퍼 읽기
     if (pa_simple_read(input, buffer, sizeof(buffer), &error) < 0) {
       fprintf(stderr, "PulseAudio read error: %s\n", pa_strerror(error));
       break;
     }
-
+    //헤더 보내기
     if (send_all(client_socket, &data_type, sizeof(data_type)) < 0) {
       fprintf(stderr, "Failed to send data type\n");
       break;
     }
-
+    //본체 크기 알려주기
     if (send_all(client_socket, &bytes_to_send, sizeof(bytes_to_send)) < 0) {
       fprintf(stderr, "Failed to send audio size\n");
       break;
     }
-
+    //본체 보내기 
     if (send_all(client_socket, buffer, sizeof(buffer)) < 0) {
       fprintf(stderr, "Failed to send audio data\n");
       break;
@@ -83,74 +84,69 @@ int main(int argc, char **argv) {
     pa_simple *input = NULL;
     pa_sample_spec ss;
 
-  pthread_t thread;
-  audio_data_t audio_data;
-  int error;
-  int client_socket;
-  struct sockaddr_in server_addr;
+    pthread_t thread;
+    audio_data_t audio_data;
+    int error;
+    int client_socket;
+    struct sockaddr_in server_addr;
+    //직접 지정
+    const char *specific_mic_source = "alsa_input.usb-GeneralPlus_USB_Audio_Device-00.mono-fallback";.
 
-  // 1단계에서 찾은 USB 마이크의 PulseAudio 디바이스 이름으로 대체합니다.
-  const char *specific_mic_source = "alsa_input.usb-GeneralPlus_USB_Audio_Device-00.mono-fallback";
-  // 만약 정확한 이름 찾기가 어렵다면, "alsa_input.usb-CARDNAME-XXXX.analog-stereo" 형식을 유추해보거나
-  // pactl list sources full 명령어로 상세 정보를 확인해야 합니다.
-  // 이 부분을 NULL로 두면 시스템의 기본 입력 장치를 사용합니다.
-
-
-  // PulseAudio 샘플 사양 설정
+    // PulseAudio 샘플 사양 설정
     ss.format = PA_SAMPLE_S16LE;
     ss.rate = 44100;
     ss.channels = 1;  // 모노 채널로 변경
 
-  // PulseAudio 입력(캡처) 스트림 생성 시 특정 마이크 소스 지정
-  // specific_mic_source를 NULL 대신 실제 마이크 이름으로 변경
-  input = pa_simple_new(NULL, "AudioSenderApp", PA_STREAM_RECORD, specific_mic_source, "record", &ss, NULL, NULL, &error);
-  if (!input) {
-    fprintf(stderr, "PulseAudio input error: %s\n", pa_strerror(error));
-    return 1;
-  }
-  printf("PulseAudio input stream initialized with source: %s\n", specific_mic_source ? specific_mic_source : "default");
+    // PulseAudio 입력(캡처) 스트림 생성 시 특정 마이크 소스 지정
+    // specific_mic_source를 NULL 대신 실제 마이크 이름으로 변경
+    input = pa_simple_new(NULL, "FullDuplexApp", PA_STREAM_RECORD, specific_mic_source, "record", &ss, NULL, NULL, &error);
+    if (!input) {
+        fprintf(stderr, "PulseAudio input error: %s\n", pa_strerror(error));
+        return 1;
+    }
+    printf("PulseAudio input stream initialized with source: %s\n", specific_mic_source ? specific_mic_source : "default");
 
-  // 소켓 생성
-  client_socket = socket(AF_INET, SOCK_STREAM, 0);
-  if (client_socket < 0) {
-    perror("socket creation failed");
+    // 소켓 생성
+    client_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (client_socket < 0) {
+        perror("socket creation failed");
+        pa_simple_free(input);
+        return 1;
+    }
+
+    // 서버 주소 설정
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(SERVER_PORT);
+    if (inet_pton(AF_INET, SERVER_IP, &server_addr.sin_addr) <= 0) {
+        perror("Invalid address");
+        close(client_socket);
+        pa_simple_free(input);
+        return 1;
+    }
+
+    // 서버 연결
+    if (connect(client_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+        perror("connection failed");
+        close(client_socket);
+        pa_simple_free(input);
+        return 1;
+    }
+    printf("Connected to server at %s:%d\n", SERVER_IP, SERVER_PORT);
+
+    // 구조체에 스트림과 소켓 저장
+    audio_data.input = input;
+    audio_data.client_socket = client_socket;
+
+    // 캡처 및 전송 스레드 시작
+    pthread_create(&thread, NULL, capture_and_send, &audio_data);
+
+    // 스레드 종료 대기
+    pthread_join(thread, NULL);
+
+    // 자원 해제
     pa_simple_free(input);
-    return 1;
-  }
-
-  // 서버 주소 설정
-  memset(&server_addr, 0, sizeof(server_addr));
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_port = htons(SERVER_PORT);
-  if (inet_pton(AF_INET, SERVER_IP, &server_addr.sin_addr) <= 0) {
-    perror("Invalid address");
     close(client_socket);
-    pa_simple_free(input);
-    return 1;
-  }
 
-  // 서버 연결
-  if (connect(client_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-    perror("connection failed");
-    close(client_socket);
-    pa_simple_free(input);
-    return 1;
-  }
-  printf("Connected to server at %s:%d\n", SERVER_IP, SERVER_PORT);
-
-  // 구조체에 스트림과 소켓 저장
-  audio_data.input = input;
-  audio_data.client_socket = client_socket;
-
-  // 캡처 및 전송 스레드 시작
-  pthread_create(&thread, NULL, capture_and_send, &audio_data);
-
-  // 스레드 종료 대기
-  pthread_join(thread, NULL);
-
-  // 자원 해제
-  pa_simple_free(input);
-  close(client_socket);
-
-  return 0;
+    return 0;
 }

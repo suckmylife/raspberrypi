@@ -129,7 +129,7 @@ int main(int argc, char **argv)
     ss.rate = 44100; // audio.txt의 SAMPLE_RATE와 동일
     ss.channels = 2; // audio.txt의 CHANNELS와 동일
 
-    audio_output = pa_simple_new(NULL, "AudioReceiverApp", PA_STREAM_PLAYBACK, NULL, "playback", &ss, NULL, NULL, &error);
+    audio_output = pa_simple_new(NULL, "FullDuplexApp", PA_STREAM_PLAYBACK, NULL, "playback", &ss, NULL, NULL, &error);
     if (!audio_output) {
         fprintf(stderr, "PulseAudio output error: %s\n", pa_strerror(error));
         // 프레임버퍼 자원 해제
