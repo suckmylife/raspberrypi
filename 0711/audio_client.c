@@ -80,8 +80,9 @@ void *capture_and_send(void *data) {
 }
 
 int main(int argc, char **argv) {
-  pa_simple *input = NULL;
-  pa_sample_spec ss;
+    pa_simple *input = NULL;
+    pa_sample_spec ss;
+
   pthread_t thread;
   audio_data_t audio_data;
   int error;
@@ -96,9 +97,9 @@ int main(int argc, char **argv) {
 
 
   // PulseAudio 샘플 사양 설정
-  ss.format = PA_SAMPLE_S16LE;
-  ss.rate = SAMPLE_RATE;
-  ss.channels = CHANNELS;
+    ss.format = PA_SAMPLE_S16LE;
+    ss.rate = 44100;
+    ss.channels = 1;  // 모노 채널로 변경
 
   // PulseAudio 입력(캡처) 스트림 생성 시 특정 마이크 소스 지정
   // specific_mic_source를 NULL 대신 실제 마이크 이름으로 변경
