@@ -215,16 +215,6 @@ int main(int argc, char **argv)
             }
 
             // 1. 데이터 타입 (1바이트) 수신
-            int recv_result_type = recv_all(csock, &data_type, sizeof(data_type), 0);
-            if (recv_result_type <= 0) {
-                if (recv_result_type < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-                    usleep(1000); continue;
-                }
-                printf("Client disconnected or error during type reception\n");
-                break; // 클라이언트 연결 종료
-            }
-
-            // 1. 데이터 타입 (1바이트) 수신
             if (recv_all(csock, &data_type, sizeof(data_type)) < 0) { // 마지막 0 인자 제거
                 printf("Client disconnected or error during type reception\n");
                 break; // 클라이언트 연결 종료
