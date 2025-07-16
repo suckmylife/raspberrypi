@@ -13,8 +13,8 @@
 
 
 #define SAMPLE_RATE 44100
-#define CHANNELS    2 // 혹은 1 (마이크에 따라 모노/스테레오 설정)
-#define BUFFER_SIZE 4096 // 버퍼 크기 (4096 * 3배)
+#define CHANNELS    1 // 혹은 1 (마이크에 따라 모노/스테레오 설정)
+#define BUFFER_SIZE 12288 // 버퍼 크기 (4096 * 3배)
 
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 5100
@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
   ss.channels = CHANNELS;
 
   // PulseAudio 입력(캡처) 스트림 생성
-  input = pa_simple_new(NULL, "AudioSenderApp", PA_STREAM_RECORD, specific_mic_source, "record", &ss, NULL, NULL, &error);
+  input = pa_simple_new(NULL, "FullDuplexApp", PA_STREAM_RECORD, specific_mic_source, "record", &ss, NULL, NULL, &error);
   if (!input) {
     fprintf(stderr, "PulseAudio input error: %s\n", pa_strerror(error));
     // 추가 힌트: "no such entity" 오류는 specific_mic_source 이름이 잘못된 경우 발생

@@ -139,8 +139,8 @@ int main() {
     int pa_error;
     ss_pa.format = PA_SAMPLE_S16LE;
     ss_pa.rate = 44100; // 오디오 클라이언트와 동일하게 설정
-    ss_pa.channels = 2; // 오디오 클라이언트와 동일하게 설정 (모노 마이크의 경우 1)
-    audio_output = pa_simple_new(NULL, "AudioReceiverApp", PA_STREAM_PLAYBACK, NULL, "playback", &ss_pa, NULL, NULL, &pa_error);
+    ss_pa.channels = 1; // 오디오 클라이언트와 동일하게 설정 (모노 마이크의 경우 1)
+    audio_output = pa_simple_new(NULL, "FullDuplexApp", PA_STREAM_PLAYBACK, NULL, "playback", &ss_pa, NULL, NULL, &pa_error);
     if (!audio_output) {
         fprintf(stderr, "PulseAudio output error: %s\n", pa_strerror(pa_error));
         munmap(fbp, screensize); close(fb_fd);
