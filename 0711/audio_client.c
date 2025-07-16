@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
   struct sockaddr_in server_addr;
 
   // 1단계에서 찾은 USB 마이크의 PulseAudio 디바이스 이름으로 대체합니다.
-  const char *specific_mic_source = "alsa_output.usb-GeneralPlus_USB_Audio_Device-00.analog-stereo";
+  const char *specific_mic_source = "alsa_input.usb-GeneralPlus_USB_Audio_Device-00.mono-fallback";
   // 만약 정확한 이름 찾기가 어렵다면, "alsa_input.usb-CARDNAME-XXXX.analog-stereo" 형식을 유추해보거나
   // pactl list sources full 명령어로 상세 정보를 확인해야 합니다.
   // 이 부분을 NULL로 두면 시스템의 기본 입력 장치를 사용합니다.
