@@ -169,7 +169,7 @@ int main(int argc, char **argv)
 
         while (1) {
             char data_type; // 데이터 타입을 저장할 변수 (1바이트)
-            int totalsize = 0; // 클라이언트가 보낼 데이터의 총 크기
+            uint32_t net_totalsize;
             fd_set readfds;
             struct timeval tv;
             tv.tv_sec = 5;  // 5초 타임아웃
@@ -200,7 +200,7 @@ int main(int argc, char **argv)
             }
 
             // 2. 데이터 크기 (4바이트) 수신
-            int recv_result_size = recv(csock, &totalsize, sizeof(totalsize), 0);
+            int recv_result_size = recv(csock, &net_totalsize, sizeof(net_totalsize), 0);
             if (recv_result_size <= 0) {
                 if (recv_result_size < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
                     usleep(1000); continue;
@@ -208,7 +208,7 @@ int main(int argc, char **argv)
                 printf("Client disconnected or error during size reception\n");
                 break; // 클라이언트 연결 종료
             }
-
+            uint32_t totalsize = ntohl(net_totalsize);
             printf("Received data type: %d, expected size: %d bytes\n", data_type, totalsize);
 
             // 데이터 수신을 위한 버퍼 할당

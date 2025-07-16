@@ -100,11 +100,12 @@ int main(int argc, char **argv) {
     while (1) {
         //담았다! 1프레임!
         int totalsize = read(fd, buffer, fmt.fmt.pix.sizeimage);  // 클라이언트에서 프레임 읽기
-        if (totalsize <= 0) {
+        uint32_t net_totalsize = htonl(totalsize);
+        if (net_totalsize <= 0) {
             perror("Failed to read frame");
             break;
         }
-        printf("totalsize : %d\n", totalsize);
+        printf("net_totalsize : %d\n", net_totalsize);
         
         // 새로 추가된 부분: 데이터 타입 전송 (1바이트)
         char data_type = VIDEO_TYPE;
@@ -122,14 +123,14 @@ int main(int argc, char **argv) {
         // 1. 총 사이즈 보내기
         // : 뜻 --> 서버 선생님 제가 이만큼 보낼거니까 준비하셔요
         int send_result;
-        while ((send_result = send(ssock, &totalsize, sizeof(totalsize), 0)) < 0) {
+        while ((send_result = send(ssock, &net_totalsize, sizeof(net_totalsize), 0)) < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 // 송신 버퍼가 가득 찼을 때 잠시 대기
                 usleep(1000);  // 1ms 대기
                 continue;
             } else {
                 // 실제 오류 발생
-                perror("send() totalsize");
+                perror("send() net_totalsize");
                 goto cleanup;
             }
         }
@@ -139,10 +140,10 @@ int main(int argc, char **argv) {
         // 버퍼가 왜 쪼개져서 갈까? :TCP가 알아서 쪼개서 보내준다고 합니다
         int sent = 0;
         //자 이제 다보낼때까지(sent가 totalsize될때까지) 와다다 쪼개서 보냅니다~
-        while (sent < totalsize) {
+        while (sent < net_totalsize) {
             //이 청크사이즈는
             //만약 쪼개서 보낼때 8kb보다 커지면 부하오니까 8kb넘지않게 보내라는 뜻
-            int chunk_size = (totalsize - sent > 8192) ? 8192 : (totalsize - sent);
+            int chunk_size = (net_totalsize - sent > 8192) ? 8192 : (net_totalsize - sent);
             
             int bytes_sent;
             while ((bytes_sent = send(ssock, buffer + sent, chunk_size, 0)) < 0) {
