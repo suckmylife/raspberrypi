@@ -258,11 +258,12 @@ int main(int argc, char **argv)
                 }
 
                 // 클라이언트에게 최종 완료 응답 보내기 (성공: 1)
-                int final_ack = 1;
-                if (send(csock, &final_ack, sizeof(final_ack), 0) <= 0) {
-                    perror("send() final ack");
+                if (send_all(i, &final_ack, sizeof(final_ack)) < 0) { // <-- send_all 사용
+                    perror("send_all() final ack");
                     free(buffer);
-                    goto end_client_session;
+                    close(i);
+                    FD_CLR(i, &master_set);
+                    continue;
                 }
             }
 
