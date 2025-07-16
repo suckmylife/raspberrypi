@@ -44,6 +44,32 @@ int send_all(int sock, const void *buffer, size_t len) {
     }
     return 0;
 }
+
+// 정확히 len 바이트를 모두 받을 때까지 반복하는 함수
+int recv_all(int sock, void *buffer, size_t len) {
+    size_t total = 0;
+    char *buf = (char *)buffer;
+    while (total < len) {
+        ssize_t n = recv(sock, buf + total, len - total, 0);
+        if (n < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // 데이터가 아직 도착하지 않음, 잠시 대기
+                usleep(1000);
+                continue;
+            } else {
+                perror("recv() error");
+                return -1;
+            }
+        } else if (n == 0) {
+            // 연결 종료
+            printf("Client disconnected during recv_all\n");
+            return -1;
+        }
+        total += n;
+    }
+    return 0;
+}
+
 int main(int argc, char **argv) {
     int ssock;
     struct sockaddr_in servaddr;
@@ -124,7 +150,7 @@ int main(int argc, char **argv) {
             break;
         }
         printf("totalsize : %d\n", totalsize);
-        
+        char data_type = VIDEO_TYPE;
         // 1. 데이터 타입 전송 (1바이트)
         if (send_all(ssock, &data_type, sizeof(data_type)) < 0) {
             fprintf(stderr, "Failed to send data type\n");
