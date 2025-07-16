@@ -173,23 +173,11 @@ int main(int argc, char **argv) {
         //activity에서(즉 select) 서버에서 응답이 왔다고 알려줬으니까
         // 서버에서 온 "나 너가 보내준 데이터 다읽엇어"라는 응답을 읽기 시작
         // 이때 응답은 내가 서버에서 설정한 "1" : 성공 /"0" : 실패이다. 
-        while ((recv_result = recv(ssock, &final_server_response, sizeof(final_server_response), 0)) < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                // 데이터가 아직 없음, 잠시 대기
-                usleep(1000);  // 1ms 대기
-                continue;
-            } else {
-                // 실제 오류 발생
-                perror("recv() final server response");
-                goto cleanup;
-            }
+        if (recv_all(ssock, &final_server_response, sizeof(final_server_response)) < 0) {
+            perror("recv_all() final server response");
+            break; // 오류 발생 시 종료
         }
-        
-        if (recv_result == 0) {
-            // 연결이 종료됨
-            printf("Server closed connection\n");
-            break;
-        }
+
         
         // 서버가 모든 데이터를 성공적으로 받았음을 확인
         if (final_server_response == 1) {

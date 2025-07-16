@@ -250,10 +250,7 @@ int main(int argc, char **argv)
                 perror("recv() buffer data failed"); // 에러 메시지 명확히 수정
                 free(buffer);
                 goto end_client_session;
-            }
-
-            // 모든 데이터를 성공적으로 받았는지 확인
-            if (received == totalsize) {
+            }else{
                 // 데이터 타입에 따라 처리 분기
                 if (data_type == VIDEO_TYPE) {
                     // 비디오 데이터 처리 (기존 로직 유지)
@@ -274,16 +271,6 @@ int main(int argc, char **argv)
                 int final_ack = 1;
                 if (send(csock, &final_ack, sizeof(final_ack), 0) <= 0) {
                     perror("send() final ack");
-                    free(buffer);
-                    goto end_client_session;
-                }
-            } else {
-                printf("Failed to receive complete data (%d/%d bytes)\n", received, totalsize);
-
-                // 클라이언트에게 최종 완료 응답 보내기 (실패: 0)
-                int final_ack = 0;
-                if (send(csock, &final_ack, sizeof(final_ack), 0) <= 0) {
-                    perror("send() final ack (error)");
                     free(buffer);
                     goto end_client_session;
                 }
