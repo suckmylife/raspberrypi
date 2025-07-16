@@ -16,12 +16,14 @@
 
 #define TCP_PORT 5100
 
-/* 비디오  관련 정의*/
+/* 비디오 관련 정의*/
 #define VIDEO_DEVICE        "/dev/video0" //카메라 접근
 #define WIDTH               640           //해상도 선정
 #define HEIGHT              480
 /* 비디오 */
 
+// 데이터 타입 정의 (서버와 동일하게 0으로 정의)
+#define VIDEO_TYPE 0
 
 int main(int argc, char **argv) {
     int ssock;
@@ -104,6 +106,19 @@ int main(int argc, char **argv) {
         }
         printf("totalsize : %d\n", totalsize);
         
+        // 새로 추가된 부분: 데이터 타입 전송 (1바이트)
+        char data_type = VIDEO_TYPE;
+        int send_type_result;
+        while ((send_type_result = send(ssock, &data_type, sizeof(data_type), 0)) < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                usleep(1000);
+                continue;
+            } else {
+                perror("send() data type");
+                goto cleanup;
+            }
+        }
+
         // 1. 총 사이즈 보내기
         // : 뜻 --> 서버 선생님 제가 이만큼 보낼거니까 준비하셔요
         int send_result;
@@ -174,7 +189,7 @@ int main(int argc, char **argv) {
         int recv_result;
         //activity에서(즉 select) 서버에서 응답이 왔다고 알려줬으니까
         // 서버에서 온 "나 너가 보내준 데이터 다읽엇어"라는 응답을 읽기 시작
-        // 이때 응답은 내가 서버에서 설정한 "1" : 성공 /"0" : 실패이다.  
+        // 이때 응답은 내가 서버에서 설정한 "1" : 성공 /"0" : 실패이다. 
         while ((recv_result = recv(ssock, &final_server_response, sizeof(final_server_response), 0)) < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 // 데이터가 아직 없음, 잠시 대기
