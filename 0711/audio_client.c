@@ -14,7 +14,7 @@
 
 #define SAMPLE_RATE 44100
 #define CHANNELS    2 // 혹은 1 (마이크에 따라 모노/스테레오 설정)
-#define BUFFER_SIZE 12288 // 버퍼 크기 (4096 * 3배)
+#define BUFFER_SIZE 4096 // 버퍼 크기 (4096 * 3배)
 
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 5100
