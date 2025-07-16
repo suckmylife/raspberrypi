@@ -4,33 +4,54 @@
 #include <pulse/simple.h>
 #include <pulse/error.h>
 #include <pthread.h>
-#include <sys/socket.h> // 소켓 통신을 위한 헤더
-#include <arpa/inet.h>  // 인터넷 주소 변환을 위한 헤더
-#include <unistd.h>     // close 함수를 위한 헤더
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <errno.h>
 
 #define SAMPLE_RATE 44100
 #define CHANNELS    2
 #define BUFFER_SIZE 4096 // 오디오 버퍼 크기
 
-#define SERVER_IP "127.0.0.1" // 서버 IP 주소 (예: 로컬호스트)
-#define SERVER_PORT 5100      // server.txt와 동일한 포트
+#define SERVER_IP "127.0.0.1"
+#define SERVER_PORT 5100
 
-#define AUDIO_TYPE 1 // 오디오 데이터임을 나타내는 타입 (1바이트)
+#define AUDIO_TYPE 1 // 오디오 데이터 타입
 
 typedef struct {
   pa_simple *input;
-  int client_socket; // 서버로 데이터를 보낼 소켓 디스크립터 추가
+  int client_socket;
 } audio_data_t;
 
-void *capture_and_send(void *data)
-{
+// send()를 반복 호출하여 모든 데이터를 전송하는 함수
+int send_all(int sock, const void *buffer, size_t len) {
+  size_t total_sent = 0;
+  const char *buf = (const char *)buffer;
+
+  while (total_sent < len) {
+    ssize_t sent = send(sock, buf + total_sent, len - total_sent, 0);
+    if (sent < 0) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        usleep(1000);
+        continue;
+      } else {
+        perror("send() error");
+        return -1;
+      }
+    }
+    total_sent += sent;
+  }
+  return 0;
+}
+
+void *capture_and_send(void *data) {
   audio_data_t *audio_data = (audio_data_t *)data;
   pa_simple *input = audio_data->input;
   int client_socket = audio_data->client_socket;
   int error;
   char buffer[BUFFER_SIZE];
-  int bytes_to_send = BUFFER_SIZE; // 전송할 오디오 데이터의 크기
-  char data_type = AUDIO_TYPE; // 전송할 데이터 타입
+  int bytes_to_send = BUFFER_SIZE;
+  char data_type = AUDIO_TYPE;
 
   while (1) {
     // 오디오 캡처
@@ -39,31 +60,29 @@ void *capture_and_send(void *data)
       break;
     }
 
-    // 1. 데이터 타입 (1바이트) 전송
-    if (send(client_socket, &data_type, sizeof(data_type), 0) < 0) {
-        perror("send() data type failed");
-        break;
-    }
-
-    // 2. 캡처한 오디오 데이터의 크기 (4바이트)를 먼저 전송
-    if (send(client_socket, &bytes_to_send, sizeof(bytes_to_send), 0) < 0) {
-        perror("send() audio size failed");
-        break;
-    }
-
-    // 3. 캡처한 오디오 데이터를 서버로 전송
-    if (send(client_socket, buffer, sizeof(buffer), 0) < 0) {
-      perror("send() audio data failed");
+    // 1. 데이터 타입 전송
+    if (send_all(client_socket, &data_type, sizeof(data_type)) < 0) {
+      fprintf(stderr, "Failed to send data type\n");
       break;
     }
-    //printf("Sent %d bytes of audio data.\n", bytes_to_send); // 디버깅용
+
+    // 2. 데이터 크기 전송
+    if (send_all(client_socket, &bytes_to_send, sizeof(bytes_to_send)) < 0) {
+      fprintf(stderr, "Failed to send audio size\n");
+      break;
+    }
+
+    // 3. 오디오 데이터 전송
+    if (send_all(client_socket, buffer, sizeof(buffer)) < 0) {
+      fprintf(stderr, "Failed to send audio data\n");
+      break;
+    }
   }
 
   return NULL;
 }
 
-int main(int argc, char** argv)
-{
+int main(int argc, char **argv) {
   pa_simple *input = NULL;
   pa_sample_spec ss;
   pthread_t thread;
@@ -72,23 +91,23 @@ int main(int argc, char** argv)
   int client_socket;
   struct sockaddr_in server_addr;
 
-  // 샘플 사양 설정 (16비트, 2채널, 44100Hz)
+  // PulseAudio 샘플 사양 설정
   ss.format = PA_SAMPLE_S16LE;
   ss.rate = SAMPLE_RATE;
   ss.channels = CHANNELS;
 
-  // PulseAudio 입력(캡처) 스트림 생성
+  // PulseAudio 입력 스트림 생성
   input = pa_simple_new(NULL, "AudioSenderApp", PA_STREAM_RECORD, NULL, "record", &ss, NULL, NULL, &error);
   if (!input) {
     fprintf(stderr, "PulseAudio input error: %s\n", pa_strerror(error));
     return 1;
   }
 
-  // 서버에 연결할 소켓 생성
+  // 소켓 생성
   client_socket = socket(AF_INET, SOCK_STREAM, 0);
   if (client_socket < 0) {
     perror("socket creation failed");
-    if (input) pa_simple_free(input);
+    pa_simple_free(input);
     return 1;
   }
 
@@ -97,34 +116,33 @@ int main(int argc, char** argv)
   server_addr.sin_family = AF_INET;
   server_addr.sin_port = htons(SERVER_PORT);
   if (inet_pton(AF_INET, SERVER_IP, &server_addr.sin_addr) <= 0) {
-    perror("Invalid address/ Address not supported");
+    perror("Invalid address");
     close(client_socket);
-    if (input) pa_simple_free(input);
+    pa_simple_free(input);
     return 1;
   }
 
-  // 서버에 연결
+  // 서버 연결
   if (connect(client_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
     perror("connection failed");
     close(client_socket);
-    if (input) pa_simple_free(input);
+    pa_simple_free(input);
     return 1;
   }
   printf("Connected to server at %s:%d\n", SERVER_IP, SERVER_PORT);
 
-  // 캡처 및 전송을 위한 구조체에 스트림 핸들 및 소켓 핸들 저장
+  // 구조체에 스트림과 소켓 저장
   audio_data.input = input;
   audio_data.client_socket = client_socket;
 
   // 캡처 및 전송 스레드 시작
   pthread_create(&thread, NULL, capture_and_send, &audio_data);
 
-  // 스레드가 끝날 때까지 기다림
+  // 스레드 종료 대기
   pthread_join(thread, NULL);
 
-  // PulseAudio 스트림 닫기
-  if (input) pa_simple_free(input);
-  // 소켓 닫기
+  // 자원 해제
+  pa_simple_free(input);
   close(client_socket);
 
   return 0;
