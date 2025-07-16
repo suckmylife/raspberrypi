@@ -9,21 +9,7 @@
 #include <unistd.h>
 #include <errno.h>
 
-#define SAMPLE_RATE 44100
-#define CHANNELS    2
-#define BUFFER_SIZE 4096 // 오디오 버퍼 크기
-
-#define SERVER_IP "127.0.0.1"
-#define SERVER_PORT 5100
-
-#define AUDIO_TYPE 1 // 오디오 데이터 타입
-
-typedef struct {
-  pa_simple *input;
-  int client_socket;
-} audio_data_t;
-
-// send()를 반복 호출하여 모든 데이터를 전송하는 함수
+// send_all 함수 (앞서 정의된 내용과 동일)
 int send_all(int sock, const void *buffer, size_t len) {
   size_t total_sent = 0;
   const char *buf = (const char *)buffer;
@@ -44,6 +30,21 @@ int send_all(int sock, const void *buffer, size_t len) {
   return 0;
 }
 
+
+#define SAMPLE_RATE 44100
+#define CHANNELS    2
+#define BUFFER_SIZE 4096
+
+#define SERVER_IP "127.0.0.1"
+#define SERVER_PORT 5100
+
+#define AUDIO_TYPE 1
+
+typedef struct {
+  pa_simple *input;
+  int client_socket;
+} audio_data_t;
+
 void *capture_and_send(void *data) {
   audio_data_t *audio_data = (audio_data_t *)data;
   pa_simple *input = audio_data->input;
@@ -54,25 +55,21 @@ void *capture_and_send(void *data) {
   char data_type = AUDIO_TYPE;
 
   while (1) {
-    // 오디오 캡처
     if (pa_simple_read(input, buffer, sizeof(buffer), &error) < 0) {
       fprintf(stderr, "PulseAudio read error: %s\n", pa_strerror(error));
       break;
     }
 
-    // 1. 데이터 타입 전송
     if (send_all(client_socket, &data_type, sizeof(data_type)) < 0) {
       fprintf(stderr, "Failed to send data type\n");
       break;
     }
 
-    // 2. 데이터 크기 전송
     if (send_all(client_socket, &bytes_to_send, sizeof(bytes_to_send)) < 0) {
       fprintf(stderr, "Failed to send audio size\n");
       break;
     }
 
-    // 3. 오디오 데이터 전송
     if (send_all(client_socket, buffer, sizeof(buffer)) < 0) {
       fprintf(stderr, "Failed to send audio data\n");
       break;
@@ -91,17 +88,26 @@ int main(int argc, char **argv) {
   int client_socket;
   struct sockaddr_in server_addr;
 
+  // 1단계에서 찾은 USB 마이크의 PulseAudio 디바이스 이름으로 대체합니다.
+  const char *specific_mic_source = "alsa_input.usb-GeneralPlus_USB_Audio_Device-00.analog-stereo";
+  // 만약 정확한 이름 찾기가 어렵다면, "alsa_input.usb-CARDNAME-XXXX.analog-stereo" 형식을 유추해보거나
+  // pactl list sources full 명령어로 상세 정보를 확인해야 합니다.
+  // 이 부분을 NULL로 두면 시스템의 기본 입력 장치를 사용합니다.
+
+
   // PulseAudio 샘플 사양 설정
   ss.format = PA_SAMPLE_S16LE;
   ss.rate = SAMPLE_RATE;
   ss.channels = CHANNELS;
 
-  // PulseAudio 입력 스트림 생성
-  input = pa_simple_new(NULL, "AudioSenderApp", PA_STREAM_RECORD, NULL, "record", &ss, NULL, NULL, &error);
+  // PulseAudio 입력(캡처) 스트림 생성 시 특정 마이크 소스 지정
+  // specific_mic_source를 NULL 대신 실제 마이크 이름으로 변경
+  input = pa_simple_new(NULL, "AudioSenderApp", PA_STREAM_RECORD, specific_mic_source, "record", &ss, NULL, NULL, &error);
   if (!input) {
     fprintf(stderr, "PulseAudio input error: %s\n", pa_strerror(error));
     return 1;
   }
+  printf("PulseAudio input stream initialized with source: %s\n", specific_mic_source ? specific_mic_source : "default");
 
   // 소켓 생성
   client_socket = socket(AF_INET, SOCK_STREAM, 0);
