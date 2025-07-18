@@ -1,6 +1,6 @@
 #include <linux/fs.h>
 #include <linux/gpio.h>
-#include <linux/interrupt>
+#include <linux/interrupt.h>
 
 #include <linux/cdev.h>
 #include <linux/module.h>
