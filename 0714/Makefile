@@ -1,6 +1,6 @@
 KDIR = /lib/modules/`uname -r`/build
 
-obj-m := gpiotimer_module.o
+obj-m := gpiosignal_module.o
 
 default:
 	$(MAKE) -C $(KDIR) M=$$PWD modules
