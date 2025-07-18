@@ -5,6 +5,8 @@
 #include <linux/uaccess.h> 		/* copy_to_user( ), copy_from_user( ) 커널 함수 */
 #include <linux/gpio.h>			/* GPIO 함수 */
 #include <linux/interrupt.h>
+#include <linux/timer.h>
+#include <linux/mutex.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("YoungJin Suh");
@@ -55,12 +57,27 @@ static struct file_operations gpio_fops = {
 
 struct cdev gpio_cdev;
 static int switch_irq;
+static struct timer_list timer;
+static DEFINE_MUTEX(led_mutex);
+
+static void timer_func(struct timer_list *t){
+    if(mutex_trylock(&led_mutex) != 0){
+        static int ledflag = 1;
+        gpio_set_value(GPIO_LED,ledflag);
+        ledflag = !ledflag;
+        mutex_unlock(&led_mutex);
+    }
+    mod_timer(&timer,jiffies + (1*HZ));
+}
 
 static irqreturn_t isr_func(int irq, void *data) {
-    if(irq==switch_irq && !gpio_get_value(GPIO_LED)) {
-        gpio_set_value(GPIO_LED, 1);
-    }else if(irq==switch_irq && gpio_get_value(GPIO_LED)) {
-        gpio_set_value(GPIO_LED,0);
+    if(mutex_trylock(&led_mutex) != 0) {
+        if(irq==switch_irq && !gpio_get_value(GPIO_LED)) {
+            gpio_set_value(GPIO_LED, 1);
+        }else if(irq==switch_irq && gpio_get_value(GPIO_LED)) {
+            gpio_set_value(GPIO_LED,0);
+        }
+        mutex_unlock(&led_mutex);
     }
     return IRQ_HANDLED;
 }
@@ -71,9 +88,10 @@ int init_module(void)
     unsigned int count;
     int err;
 
-    printk(KERN_INFO "Hello module!\n");
+    printk(KERN_INFO "Hello timer module!\n");
+    mutex_init(&led_mutex);
     try_module_get(THIS_MODULE);
-
+    
     /* 문자 디바이스를 등록한다. */
     devno = MKDEV(GPIO_MAJOR, GPIO_MINOR);
     register_chrdev_region(devno, 1, GPIO_DEVICE);
@@ -105,6 +123,7 @@ int init_module(void)
 void cleanup_module(void)
 {
     dev_t devno = MKDEV(GPIO_MAJOR, GPIO_MINOR);
+    mutex_destroy(&led_mutex);
     unregister_chrdev_region(devno, 1); 		/* 문자 디바이스의 등록을 해제한다. */
 
     cdev_del(&gpio_cdev); 				/* 문자 디바이스의 구조체를 해제한다. */
@@ -154,9 +173,16 @@ static ssize_t gpio_write(struct file *inode, const char *buff, size_t len, loff
 
     memset(msg, 0, BLOCK_SIZE);
     count = copy_from_user(msg, buff, len); /* 사용자 영역으로부터 데이터를 가져온다. */
-
-    /* LED를 설정한다. */
-    gpio_set_value(GPIO_LED, (!strcmp(msg, "0"))?0:1);
+    if(!strcmp(msg,"0")){
+        del_timer_sync(&timer);
+        /* LED를 설정한다. */
+        gpio_set_value(GPIO_LED, 0);
+    }else{
+        timer_setup(&timer,timer_func,0);
+        timer.expires = jiffies + (1*HZ);
+        add_timer(&timer);
+    }
+    
 
     printk("GPIO Device(%d) write : %s(%ld)\n",
             MAJOR(inode->f_path.dentry->d_inode->i_rdev), msg, len);
