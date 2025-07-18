@@ -23,9 +23,9 @@ struct cdev gpio_cdev;
 static int switch_irq;
 
 static int gpio_open(struct inode *, struct file *);
-static ssize_t gpio_read(struct file *, char *, size_t, loff_t *);
-static ssize_t gpio_write(struct file *, const char *, size_t, loff_t *);
-static int gpio_close(struct inode *, struct file *);
+static ssize_t gpio_read(struct file*, char*, size_t, loff_t*);
+static ssize_t gpio_write(struct file*, const char*, size_t, loff_t*);
+static int gpio_close(struct inode *, struct file*);
 
 static struct file_operations gpio_fops = {
     .owner = THIS_MODULE,
@@ -90,38 +90,36 @@ void cleanup_module(void){
     printk(KERN_INFO "Good bye irq led module\n");
 }
 
-static int gpio_open(struct inode *inod, struct file *fil)
-{
-    printk("GPIO DEVICE opened(%d/%d)\n",imajor(inod),iminor(inod));
-    return 0;
+static int gpio_open(struct inode *inod, struct file *fil){
+	printk("gpioDevice opened %d/%d\n",imajor(inod),iminor(inod));
+	try_module_get(THIS_MODULE);
+
+	return 0;
 }
+static int gpio_close(struct inode *inod, struct file*fil){
+	printk("GPIO_DEVICE closed(%d)\n",MAJOR(fil->f_path.dentry->d_inode->i_rdev));
+	module_put(THIS_MODULE);
 
-static ssize_t gpio_read(struct file *inode, char *buff, size_t len, loff_t *off)
-{
-    int count;
-    strcat(msg, "from kernel");
-    count = copy_to_user(buff,msg,strlen(msg)+1);
-    printk("GPIO DEVICE(%d) read : %s(%d)\n",
-        MAJOR(inode->f_path.dentry->d_inode->i_rdev),msg,count);
-
-    return count;
+	return 0;
 }
+static ssize_t gpio_read(struct file *inode, char *buff, size_t len, loff_t *off){
+	int count;
 
-static ssize_t gpio_write(struct file *inode, const char *buff, size_t len, loff_t *off)
-{
-    short count;
-    memset(msg,0,BLOCK_SIZE);
-    count = copy_from_user(msg,buff,len);
-    (!strcmp(msg,"0")) ? GPIO_CLR(GPIO_LED):GPIO_SET(GPIO_LED);
-    printk("GPIO DEVICE(%d) write : %s(%zd)\n",
-        MAJOR(inode->f_path.dentry->d_inode->i_rdev),msg,len);
+	strcat(msg,"from kernel");
+	count = copy_to_user(buff,msg,strlen(msg)+1);
 
-    return count;
+	printk("gpio %d read %s(%d)\n",MAJOR(inode->f_path.dentry->d_inode->i_rdev),msg,count);
+
+	return count;
 }
+static ssize_t gpio_write(struct file* inode, const char* buff, size_t len, loff_t*off){
+	short count;
+	memset(msg,0,BLOCK_SIZE);
+	count = copy_from_user(msg,buff,len);
 
-static int gpio_close(struct inode *inod, struct file *fil)
-{
-    printk("GPIO DEVICE closed(%d)\n",MAJOR(fil->f_path.dentry->d_inode->i_rdev));
-    return 0;
+	gpio_set_value(GPIO_LED,(!strcmp(msg,"0"))?0:1);
+	printk("gpio %d write %s(%zd)\n",MAJOR(inode->f_path.dentry->d_inode->i_rdev),msg,len);
+
+	return count;
 }
  
