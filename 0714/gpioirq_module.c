@@ -14,7 +14,7 @@ MODULE_DESCRIPTION("Rasberry Pi GPIO LED Device Module");
 #define GPIO_MAJOR 200
 #define GPIO_MINOR 0
 #define GPIO_DEVICE "gpioled"
-#define GPIO_LED 530
+#define GPIO_LED 18
 #define GPIO_SW 24
 volatile unsigned *gpio; /* I/O 접근을 위한 volatile 변수 */
 static char msg[BLOCK_SIZE] = {0};
