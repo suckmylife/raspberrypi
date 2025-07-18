@@ -66,7 +66,6 @@ int init_module(void)
 {
     dev_t devno;
     unsigned int count;
-    static void *map;
     int err;
 
     printk(KERN_INFO "Hello IRQ Module!\n");
